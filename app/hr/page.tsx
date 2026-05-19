@@ -14,6 +14,7 @@ import {
   Package,
   Plus,
   QrCode,
+  Search,
   Shield,
   Trash2,
   Upload,
@@ -120,6 +121,7 @@ export default function HRDashboard() {
     React.useState<ImageEditorState | null>(null)
   const [requestFormUrl, setRequestFormUrl] = React.useState("")
   const [requestFormQr, setRequestFormQr] = React.useState("")
+  const [managementSearch, setManagementSearch] = React.useState("")
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
   )
@@ -130,6 +132,27 @@ export default function HRDashboard() {
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
   const { toast } = useToast()
+
+  const filteredEquipment = React.useMemo(() => {
+    const query = managementSearch.trim().toLowerCase()
+    if (!query) return equipment
+
+    return equipment.filter((item) =>
+      [
+        item.id,
+        item.name,
+        item.baseUnit,
+        item.mainUnit || "",
+        String(item.totalStock),
+        String(item.used),
+        String(item.remaining),
+        item.remaining <= 0 ? "หมด" : "พร้อมเบิก",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    )
+  }, [equipment, managementSearch])
 
   React.useEffect(() => {
     setRequestFormUrl(`${window.location.origin}/form`)
@@ -637,7 +660,7 @@ export default function HRDashboard() {
             <CardHeader>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="text-xl">สต๊อกอุปกรณ์</CardTitle>
+                  <CardTitle className="text-xl">Inventory</CardTitle>
                   <CardDescription>
                     HR เห็นทุกรายการ รวมถึงรายการที่สต๊อกหมด
                   </CardDescription>
@@ -649,9 +672,26 @@ export default function HRDashboard() {
               </div>
             </CardHeader>
             <CardContent>
+              <div className="relative mb-5 max-w-xl">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={managementSearch}
+                  onChange={(event) => setManagementSearch(event.target.value)}
+                  placeholder="ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก"
+                  className="h-11 rounded-xl border-slate-200 bg-white pl-10"
+                />
+              </div>
               {loading ? (
                 <div className="py-8 text-center text-sm text-slate-600">
                   กำลังโหลด...
+                </div>
+              ) : equipment.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ยังไม่มีอุปกรณ์ในระบบ
+                </div>
+              ) : filteredEquipment.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ไม่พบรายการที่ตรงกับคำค้น
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -687,7 +727,7 @@ export default function HRDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {equipment.map((item) => (
+                      {filteredEquipment.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
                             {item.image ? (
@@ -818,16 +858,14 @@ export default function HRDashboard() {
             </DialogHeader>
 
             <div className="grid gap-4 py-2 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="id">รหัสอุปกรณ์</Label>
-                <Input
-                  id="id"
-                  placeholder="ปล่อยว่างเพื่อสร้างอัตโนมัติ"
-                  value={equipmentDraft.id}
-                  onChange={(event) => updateDraft("id", event.target.value)}
-                  disabled={Boolean(editingEquipment)}
-                />
-              </div>
+              {editingEquipment ? (
+                <div className="space-y-2">
+                  <Label>รหัสอุปกรณ์</Label>
+                  <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+                    {editingEquipment.id}
+                  </div>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label htmlFor="name">ชื่ออุปกรณ์</Label>
                 <Input

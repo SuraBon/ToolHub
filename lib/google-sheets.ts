@@ -258,7 +258,7 @@ export async function appendEquipment(input: EquipmentInput) {
   const spreadsheetId = process.env.SPREADSHEET_ID
   const existingEquipment = await getAllEquipmentData()
   const fallbackId = generateNextEquipmentId(existingEquipment)
-  const equipment = normalizeEquipmentInput(input, fallbackId)
+  const equipment = normalizeEquipmentInput({ ...input, id: "" }, fallbackId)
   const validationError = validateEquipmentInput(equipment)
 
   if (validationError) {

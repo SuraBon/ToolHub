@@ -90,7 +90,7 @@ export default function FormPage() {
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Package className="h-5 w-5 text-blue-600" />
-              Request Details
+              รายละเอียดการเบิก
             </CardTitle>
             <CardDescription>
               กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก

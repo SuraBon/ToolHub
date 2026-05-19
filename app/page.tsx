@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, Lock, Package } from "lucide-react"
+import { AlertTriangle, ArrowRight, Lock, Package, Search } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -27,9 +29,46 @@ import type { Equipment } from "@/types"
 
 const LOW_STOCK_THRESHOLD = 10
 
+function equipmentMatchesSearch(item: Equipment, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+
+  return [
+    item.name,
+    item.baseUnit,
+    item.mainUnit || "",
+    String(item.remaining),
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery)
+}
+
+function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
+  return item.image ? (
+    <Image
+      src={item.image}
+      alt={item.name}
+      width={size}
+      height={size}
+      className="rounded-lg object-cover"
+      style={{ width: size, height: size }}
+      unoptimized
+    />
+  ) : (
+    <div
+      className="flex items-center justify-center rounded-lg bg-blue-50 text-blue-600"
+      style={{ width: size, height: size }}
+    >
+      <Package className="h-5 w-5" />
+    </div>
+  )
+}
+
 export default function StockOverviewPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [searchQuery, setSearchQuery] = React.useState("")
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -58,6 +97,9 @@ export default function StockOverviewPage() {
   const lowStockItems = equipment.filter(
     (item) => item.remaining <= LOW_STOCK_THRESHOLD
   )
+  const filteredEquipment = equipment.filter((item) =>
+    equipmentMatchesSearch(item, searchQuery)
+  )
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
@@ -65,35 +107,35 @@ export default function StockOverviewPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <header className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-xl shadow-slate-200/70 backdrop-blur lg:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Stock
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-              ตรวจสอบสต๊อกอุปกรณ์ที่พร้อมเบิกและรายการใกล้หมด
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              asChild
-              className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:bg-blue-700"
-            >
-              <Link href="/form">
-                เปิด Request Form
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-12 gap-2 rounded-xl border-slate-200 bg-white/90 px-5 text-base font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Link href="/hr">
-                <Lock className="h-4 w-4" />
-                Management
-              </Link>
-            </Button>
-          </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Stock
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+                ตรวจสอบสต๊อกอุปกรณ์ที่พร้อมเบิกและรายการใกล้หมด
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                asChild
+                className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:bg-blue-700"
+              >
+                <Link href="/form">
+                  เปิด Request Form
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="h-12 gap-2 rounded-xl border-slate-200 bg-white/90 px-5 text-base font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Link href="/hr">
+                  <Lock className="h-4 w-4" />
+                  Management
+                </Link>
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -127,13 +169,26 @@ export default function StockOverviewPage() {
         <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Package className="h-5 w-5 text-blue-600" />
-                Available Stock
-              </CardTitle>
-              <CardDescription>
-                แสดงเฉพาะรายการที่ยังมีคงเหลือมากกว่า 0
-              </CardDescription>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    Available Stock
+                  </CardTitle>
+                  <CardDescription>
+                    แสดงเฉพาะรายการที่ยังมีคงเหลือมากกว่า 0
+                  </CardDescription>
+                </div>
+                <div className="relative w-full lg:max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="ค้นหาอุปกรณ์..."
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -146,11 +201,16 @@ export default function StockOverviewPage() {
                 <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600">
                   ยังไม่มีอุปกรณ์ที่พร้อมเบิก
                 </div>
+              ) : filteredEquipment.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600">
+                  ไม่พบรายการที่ตรงกับคำค้น
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[72px] whitespace-nowrap">รูป</TableHead>
                         <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
                         <TableHead className="whitespace-nowrap text-right">
                           คงเหลือ
@@ -159,8 +219,11 @@ export default function StockOverviewPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {equipment.map((item) => (
+                      {filteredEquipment.map((item) => (
                         <TableRow key={item.id}>
+                          <TableCell>
+                            <EquipmentImage item={item} />
+                          </TableCell>
                           <TableCell>{item.name}</TableCell>
                           <TableCell className="text-right font-semibold">
                             {item.remaining}
@@ -202,13 +265,16 @@ export default function StockOverviewPage() {
                       key={item.id}
                       className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-slate-900">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          เหลือน้อยกว่าที่กำหนด
-                        </p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <EquipmentImage item={item} size={36} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            เหลือน้อยกว่าที่กำหนด
+                          </p>
+                        </div>
                       </div>
                       <p className="shrink-0 text-sm font-semibold text-amber-800">
                         {item.remaining} {item.baseUnit}
