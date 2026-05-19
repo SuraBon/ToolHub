@@ -32,8 +32,8 @@ export default function FormPage() {
       setEquipment([])
       toast({
         variant: "destructive",
-        title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¹„à¸”à¹‰",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถดึงข้อมูลอุปกรณ์ได้",
       })
     } finally {
       setLoading(false)
@@ -59,23 +59,23 @@ export default function FormPage() {
 
       if (response.ok) {
         toast({
-          title: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
-          description: `à¹€à¸¥à¸‚à¸—à¸µà¹ˆà¹ƒà¸šà¹€à¸šà¸´à¸: ${result.requisitionNumber}`,
+          title: "บันทึกสำเร็จ",
+          description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
         })
         await fetchEquipment()
       } else {
         toast({
           variant: "destructive",
-          title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-          description: result.error || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¹€à¸šà¸´à¸à¹„à¸”à¹‰",
+          title: "เกิดข้อผิดพลาด",
+          description: result.error || "ไม่สามารถบันทึกการเบิกได้",
         })
       }
     } catch (error) {
       console.error("Error submitting requisition:", error)
       toast({
         variant: "destructive",
-        title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¹€à¸šà¸´à¸à¹„à¸”à¹‰",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถบันทึกการเบิกได้",
       })
     } finally {
       setSubmitting(false)
@@ -93,7 +93,7 @@ export default function FormPage() {
               Request Details
             </CardTitle>
             <CardDescription>
-              à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸œà¸¹à¹‰à¹€à¸šà¸´à¸à¹à¸¥à¸°à¹€à¸¥à¸·à¸­à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹€à¸šà¸´à¸
+              กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">

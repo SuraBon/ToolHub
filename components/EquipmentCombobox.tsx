@@ -88,8 +88,8 @@ export function EquipmentCombobox({
                 <CommandItem
                   key={eq.id}
                   value={eq.id}
-                  onSelect={(currentValue) => {
-                    onSelect(currentValue === value ? "" : currentValue)
+                  onSelect={() => {
+                    onSelect(eq.id === value ? "" : eq.id)
                     setOpen(false)
                   }}
                   className="cursor-pointer"

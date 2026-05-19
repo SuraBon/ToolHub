@@ -154,8 +154,10 @@ export default function HRDashboard() {
       })
   }, [requestFormUrl])
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true)
+  const fetchData = React.useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true)
+    }
     try {
       const [eqRes, histRes] = await Promise.all([
         fetch("/api/equipment?scope=all"),
@@ -173,7 +175,9 @@ export default function HRDashboard() {
         description: "ไม่สามารถดึงข้อมูลได้",
       })
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }, [toast])
 
@@ -401,10 +405,24 @@ export default function HRDashboard() {
           ? "แก้ไขข้อมูลอุปกรณ์แล้ว"
           : "เพิ่มอุปกรณ์ใหม่แล้ว",
       })
+      const savedEquipment = result.equipment as Equipment | undefined
+      if (savedEquipment) {
+        setEquipment((current) => {
+          const itemExists = current.some((item) => item.id === savedEquipment.id)
+
+          if (itemExists) {
+            return current.map((item) =>
+              item.id === savedEquipment.id ? savedEquipment : item
+            )
+          }
+
+          return [...current, savedEquipment]
+        })
+      }
       setEditDialogOpen(false)
       setEditingEquipment(null)
       setEquipmentDraft(emptyEquipmentDraft)
-      await fetchData()
+      void fetchData(false)
     } catch (error) {
       toast({
         variant: "destructive",
@@ -436,8 +454,11 @@ export default function HRDashboard() {
         title: "ลบอุปกรณ์แล้ว",
         description: deleteTarget.name,
       })
+      setEquipment((current) =>
+        current.filter((item) => item.id !== deleteTarget.id)
+      )
       setDeleteTarget(null)
-      await fetchData()
+      void fetchData(false)
     } catch (error) {
       toast({
         variant: "destructive",

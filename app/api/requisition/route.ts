@@ -19,6 +19,9 @@ export async function POST(request: Request) {
     // Fetch latest equipment data for concurrency check
     const equipmentData = await getEquipmentData()
     const equipmentMap = new Map(equipmentData.map(eq => [eq.id, eq]))
+    const normalizedEquipmentMap = new Map(
+      equipmentData.map(eq => [eq.id.toLowerCase(), eq])
+    )
 
     // Generate requisition number
     const requisitionNumber = `REQ${Date.now()}`
@@ -29,11 +32,14 @@ export async function POST(request: Request) {
     const currentDate = new Date()
 
     for (const item of items) {
-      const equipment = equipmentMap.get(item.equipmentId)
+      const requestedEquipmentId = String(item.equipmentId || "").trim()
+      const equipment =
+        equipmentMap.get(requestedEquipmentId) ||
+        normalizedEquipmentMap.get(requestedEquipmentId.toLowerCase())
       
       if (!equipment) {
         return NextResponse.json(
-          { error: `Equipment ${item.equipmentId} not found` },
+          { error: `ไม่พบอุปกรณ์รหัส ${requestedEquipmentId}` },
           { status: 404 }
         )
       }
