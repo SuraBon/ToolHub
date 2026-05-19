@@ -39,9 +39,7 @@ export function UnitSelector({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="main">
-          {equipment.mainUnit} (1 {equipment.mainUnit} = {equipment.ratio} {equipment.baseUnit})
-        </SelectItem>
+        <SelectItem value="main">{equipment.mainUnit}</SelectItem>
         <SelectItem value="base">{equipment.baseUnit}</SelectItem>
       </SelectContent>
     </Select>

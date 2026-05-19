@@ -121,6 +121,7 @@ export default function HRDashboard() {
     React.useState<ImageEditorState | null>(null)
   const [requestFormUrl, setRequestFormUrl] = React.useState("")
   const [requestFormQr, setRequestFormQr] = React.useState("")
+  const [qrDialogOpen, setQrDialogOpen] = React.useState(false)
   const [managementSearch, setManagementSearch] = React.useState("")
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
@@ -584,76 +585,16 @@ export default function HRDashboard() {
             <FileText className="h-4 w-4" />
             Request History
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setQrDialogOpen(true)}
+            className="gap-2"
+          >
+            <QrCode className="h-4 w-4" />
+            Request QR
+          </Button>
         </div>
-
-        <Card className="overflow-hidden border-blue-100 bg-white/90 shadow-xl shadow-blue-100/60 backdrop-blur">
-          <CardContent className="grid gap-5 p-5 lg:grid-cols-[1fr_220px] lg:items-center">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200">
-                  <QrCode className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-950">
-                    Request Form QR
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    สแกนแล้วเปิดหน้า Request Form เพื่อให้พนักงานกรอกเบิกอุปกรณ์ได้ทันที
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
-                {requestFormUrl || "กำลังเตรียมลิงก์..."}
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  onClick={handleCopyRequestFormUrl}
-                  variant="outline"
-                  className="gap-2 rounded-xl"
-                  disabled={!requestFormUrl}
-                >
-                  <Copy className="h-4 w-4" />
-                  คัดลอกลิงก์
-                </Button>
-                {requestFormQr ? (
-                  <Button
-                    asChild
-                    className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
-                  >
-                    <a href={requestFormQr} download="request-form-qr.png">
-                      <Download className="h-4 w-4" />
-                      ดาวน์โหลด QR
-                    </a>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
-                    disabled
-                  >
-                    <Download className="h-4 w-4" />
-                    ดาวน์โหลด QR
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 shadow-inner">
-              {requestFormQr ? (
-                <Image
-                  src={requestFormQr}
-                  alt="QR สำหรับเปิด Request Form"
-                  width={196}
-                  height={196}
-                  unoptimized
-                  className="h-full w-full"
-                />
-              ) : (
-                <QrCode className="h-16 w-16 text-slate-300" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {activeTab === "equipment" ? (
           <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
@@ -846,6 +787,75 @@ export default function HRDashboard() {
           </Card>
         )}
 
+        <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-blue-600" />
+                Request Form QR
+              </DialogTitle>
+              <DialogDescription>
+                สแกน QR เพื่อเปิดฟอร์มเบิกอุปกรณ์ หรือคัดลอกลิงก์ไปใช้งาน
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-5 sm:grid-cols-[1fr_220px] sm:items-center">
+              <div className="space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                  {requestFormUrl || "กำลังเตรียมลิงก์..."}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    onClick={handleCopyRequestFormUrl}
+                    variant="outline"
+                    className="gap-2 rounded-xl"
+                    disabled={!requestFormUrl}
+                  >
+                    <Copy className="h-4 w-4" />
+                    คัดลอกลิงก์
+                  </Button>
+                  {requestFormQr ? (
+                    <Button
+                      asChild
+                      className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
+                    >
+                      <a href={requestFormQr} download="request-form-qr.png">
+                        <Download className="h-4 w-4" />
+                        ดาวน์โหลด QR
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
+                      disabled
+                    >
+                      <Download className="h-4 w-4" />
+                      ดาวน์โหลด QR
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 shadow-inner">
+                {requestFormQr ? (
+                  <Image
+                    src={requestFormQr}
+                    alt="QR สำหรับเปิด Request Form"
+                    width={196}
+                    height={196}
+                    unoptimized
+                    className="h-full w-full"
+                  />
+                ) : (
+                  <QrCode className="h-16 w-16 text-slate-300" />
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
@@ -876,21 +886,27 @@ export default function HRDashboard() {
               </div>
               <div className="space-y-3 sm:col-span-2">
                 <Label htmlFor="imageUpload">รูปภาพอุปกรณ์</Label>
-                <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
-                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                <div className="grid gap-3 sm:grid-cols-[112px_1fr]">
+                  <Label
+                    htmlFor="imageUpload"
+                    className="group relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 transition hover:border-blue-300 hover:bg-blue-50"
+                  >
                     {equipmentDraft.image ? (
                       <Image
                         src={equipmentDraft.image}
                         alt={equipmentDraft.name || "รูปอุปกรณ์"}
-                        width={96}
-                        height={96}
+                        width={112}
+                        height={112}
                         className="h-full w-full object-cover"
                         unoptimized
                       />
                     ) : (
                       <Package className="h-8 w-8 text-slate-400" />
                     )}
-                  </div>
+                    <span className="absolute inset-x-2 bottom-2 rounded-lg bg-slate-950/70 px-2 py-1 text-center text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+                      คลิกเพื่อเลือกรูป
+                    </span>
+                  </Label>
                   <div className="space-y-2">
                     <Input
                       id="imageUpload"
@@ -898,6 +914,7 @@ export default function HRDashboard() {
                       accept="image/*"
                       onChange={handleImageSelect}
                       disabled={uploadingImage}
+                      className="sr-only"
                     />
                     {imageEditor && (
                       <div className="space-y-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
@@ -1022,16 +1039,18 @@ export default function HRDashboard() {
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="used">ใช้ไป</Label>
-                <Input
-                  id="used"
-                  type="number"
-                  min="0"
-                  value={equipmentDraft.used}
-                  onChange={(event) => updateDraft("used", event.target.value)}
-                />
-              </div>
+              {editingEquipment ? (
+                <div className="space-y-2">
+                  <Label htmlFor="used">ใช้ไป</Label>
+                  <Input
+                    id="used"
+                    type="number"
+                    min="0"
+                    value={equipmentDraft.used}
+                    onChange={(event) => updateDraft("used", event.target.value)}
+                  />
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label htmlFor="baseUnit">หน่วยย่อย</Label>
                 <Input
