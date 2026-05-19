@@ -232,7 +232,7 @@ export default function HRDashboard() {
     try {
       const [eqRes, histRes] = await Promise.all([
         fetch("/api/equipment?scope=all"),
-        fetch("/api/requisition-history"),
+        fetch("/api/requisition-history", { cache: "no-store" }),
       ])
       const eqData = await eqRes.json()
       const histData = await histRes.json()
@@ -692,30 +692,30 @@ export default function HRDashboard() {
                     <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">รูปภาพ</TableHead>
-                        <TableHead className="whitespace-nowrap">รหัส</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">รหัส</TableHead>
                         <TableHead className="whitespace-nowrap">
                           ชื่ออุปกรณ์
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           สต๊อกรวม
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           ใช้ไป
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           คงเหลือ
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">
+                        <TableHead className="whitespace-nowrap text-center">
                           หน่วยย่อย
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">
+                        <TableHead className="whitespace-nowrap text-center">
                           หน่วยใหญ่
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           อัตราส่วน
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           จัดการ
                         </TableHead>
                       </TableRow>
@@ -724,6 +724,7 @@ export default function HRDashboard() {
                       {paginatedEquipment.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
+                            <div className="flex justify-center">
                             {item.image ? (
                               <Image
                                 src={item.image}
@@ -738,23 +739,24 @@ export default function HRDashboard() {
                                 <Package className="h-5 w-5 text-slate-500" />
                               </div>
                             )}
+                            </div>
                           </TableCell>
-                          <TableCell className="font-medium">{item.id}</TableCell>
+                          <TableCell className="text-center font-medium">{item.id}</TableCell>
                           <TableCell>{item.name}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             {item.totalStock}
                           </TableCell>
-                          <TableCell className="text-right">{item.used}</TableCell>
-                          <TableCell className="text-right font-semibold">
+                          <TableCell className="text-center">{item.used}</TableCell>
+                          <TableCell className="text-center font-semibold">
                             {item.remaining}
                           </TableCell>
-                          <TableCell>{item.baseUnit}</TableCell>
-                          <TableCell>{item.mainUnit || "-"}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">{item.baseUnit}</TableCell>
+                          <TableCell className="text-center">{item.mainUnit || "-"}</TableCell>
+                          <TableCell className="text-center">
                             {item.ratio || "-"}
                           </TableCell>
                           <TableCell>
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -801,43 +803,47 @@ export default function HRDashboard() {
                 <div className="py-8 text-center text-sm text-slate-600">
                   กำลังโหลด...
                 </div>
+              ) : history.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ยังไม่มีประวัติการเบิก
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="overflow-x-auto">
                     <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">
+                        <TableHead className="whitespace-nowrap text-center">
                           เลขที่ใบเบิก
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">วันที่</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">วันที่</TableHead>
                         <TableHead className="whitespace-nowrap">
                           ชื่อ-นามสกุล
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">แผนก</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">แผนก</TableHead>
                         <TableHead className="whitespace-nowrap">
                           อุปกรณ์
                         </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
+                        <TableHead className="whitespace-nowrap text-center">
                           จำนวน
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">หน่วย</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">หน่วย</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedHistory.map((item, index) => (
                         <TableRow key={`${item.requisitionNumber}-${index}`}>
-                          <TableCell className="font-semibold">
+                          <TableCell className="text-center font-semibold">
                             {item.requisitionNumber}
                           </TableCell>
-                          <TableCell>{item.date}</TableCell>
+                          <TableCell className="text-center">{item.date}</TableCell>
                           <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.department}</TableCell>
+                          <TableCell className="text-center">{item.department}</TableCell>
                           <TableCell>{item.equipmentName}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             {item.amount}
                           </TableCell>
-                          <TableCell>{item.unit}</TableCell>
+                          <TableCell className="text-center">{item.unit}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

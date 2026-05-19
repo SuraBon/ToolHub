@@ -209,7 +209,7 @@ export function RequisitionForm({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.1 }}
-                      className="shrink-0"
+                      className="flex shrink-0 justify-center"
                     >
                       <SelectedEquipmentImage equipment={selectedEquipment} />
                     </motion.div>

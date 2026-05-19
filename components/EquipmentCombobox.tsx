@@ -162,7 +162,7 @@ export function EquipmentCombobox({
                         onClick={() => !unavailable && handleSelect(eq.id)}
                         disabled={unavailable}
                         className={cn(
-                          "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                          "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:flex-col sm:text-center",
                           unavailable
                             ? "cursor-not-allowed opacity-55"
                             : "hover:border-blue-200 hover:bg-blue-50",
@@ -172,8 +172,8 @@ export function EquipmentCombobox({
                         )}
                       >
                         <EquipmentThumb equipment={eq} size="lg" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0 flex-1 sm:w-full">
+                          <div className="flex min-w-0 items-center gap-2 sm:justify-center">
                             <p className="truncate text-sm font-semibold text-slate-950">
                               {eq.name}
                             </p>

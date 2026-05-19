@@ -3,7 +3,14 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, Lock, Package, Search } from "lucide-react"
+import {
+  ArrowRight,
+  ClipboardList,
+  Lock,
+  Package,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PaginationControls } from "@/components/PaginationControls"
@@ -15,6 +22,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -30,7 +44,15 @@ import type { Equipment } from "@/types"
 
 const LOW_STOCK_THRESHOLD = 10
 const STOCK_PAGE_SIZE = 10
-const LOW_STOCK_PAGE_SIZE = 6
+
+type StockFilter = "all" | "available" | "low" | "out"
+
+const stockFilterLabels: Record<StockFilter, string> = {
+  all: "ทั้งหมด",
+  available: "ยังมีสต๊อก",
+  low: "ใกล้หมด",
+  out: "หมดสต๊อก",
+}
 
 function equipmentMatchesSearch(item: Equipment, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
@@ -49,6 +71,15 @@ function equipmentMatchesSearch(item: Equipment, query: string) {
     .includes(normalizedQuery)
 }
 
+function equipmentMatchesFilter(item: Equipment, filter: StockFilter) {
+  if (filter === "available") return item.remaining > 0
+  if (filter === "low") {
+    return item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
+  }
+  if (filter === "out") return item.remaining <= 0
+  return true
+}
+
 function getEquipmentSortNumber(id: string) {
   const match = id.match(/^EQ(\d+)$/i)
   return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
@@ -64,6 +95,25 @@ function sortEquipmentById(items: Equipment[]) {
 
 function formatUnit(item: Equipment) {
   return item.mainUnit ? `${item.baseUnit}/${item.mainUnit}` : item.baseUnit
+}
+
+function getStockStatus(item: Equipment) {
+  if (item.remaining <= 0) {
+    return {
+      label: "หมดสต๊อก",
+      className: "bg-rose-50 text-rose-700 ring-rose-100",
+    }
+  }
+  if (item.remaining <= LOW_STOCK_THRESHOLD) {
+    return {
+      label: "ใกล้หมด",
+      className: "bg-amber-50 text-amber-700 ring-amber-100",
+    }
+  }
+  return {
+    label: "พร้อมเบิก",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  }
 }
 
 function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
@@ -91,8 +141,8 @@ export default function StockOverviewPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [stockFilter, setStockFilter] = React.useState<StockFilter>("all")
   const [stockPage, setStockPage] = React.useState(1)
-  const [lowStockPage, setLowStockPage] = React.useState(1)
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -119,32 +169,26 @@ export default function StockOverviewPage() {
 
   React.useEffect(() => {
     setStockPage(1)
-  }, [searchQuery])
+  }, [searchQuery, stockFilter])
 
-  const totalRemaining = equipment.reduce((sum, item) => sum + item.remaining, 0)
   const lowStockItems = equipment.filter(
-    (item) => item.remaining <= LOW_STOCK_THRESHOLD
+    (item) => item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
   )
-  const filteredEquipment = equipment.filter((item) =>
-    equipmentMatchesSearch(item, searchQuery)
+  const availableItems = equipment.filter((item) => item.remaining > 0)
+  const outOfStockItems = equipment.filter((item) => item.remaining <= 0)
+  const filteredEquipment = equipment.filter(
+    (item) =>
+      equipmentMatchesFilter(item, stockFilter) &&
+      equipmentMatchesSearch(item, searchQuery)
   )
   const stockTotalPages = Math.max(
     1,
     Math.ceil(filteredEquipment.length / STOCK_PAGE_SIZE)
   )
-  const lowStockTotalPages = Math.max(
-    1,
-    Math.ceil(lowStockItems.length / LOW_STOCK_PAGE_SIZE)
-  )
   const currentStockPage = Math.min(stockPage, stockTotalPages)
-  const currentLowStockPage = Math.min(lowStockPage, lowStockTotalPages)
   const paginatedEquipment = filteredEquipment.slice(
     (currentStockPage - 1) * STOCK_PAGE_SIZE,
     currentStockPage * STOCK_PAGE_SIZE
-  )
-  const paginatedLowStockItems = lowStockItems.slice(
-    (currentLowStockPage - 1) * LOW_STOCK_PAGE_SIZE,
-    currentLowStockPage * LOW_STOCK_PAGE_SIZE
   )
 
   return (
@@ -164,9 +208,10 @@ export default function StockOverviewPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 asChild
-                className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:bg-blue-700"
+                className="h-12 gap-2 rounded-2xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-300"
               >
                 <Link href="/form">
+                  <ClipboardList className="h-4 w-4" />
                   เปิด Request Form
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -174,7 +219,7 @@ export default function StockOverviewPage() {
               <Button
                 asChild
                 variant="outline"
-                className="h-12 gap-2 rounded-xl border-slate-200 bg-white/90 px-5 text-base font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="h-12 gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
               >
                 <Link href="/hr">
                   <Lock className="h-4 w-4" />
@@ -196,23 +241,23 @@ export default function StockOverviewPage() {
           </Card>
           <Card className="border-emerald-100 bg-white/85 shadow-lg shadow-emerald-100/60">
             <CardHeader className="pb-2">
-              <CardDescription>คงเหลือรวม</CardDescription>
+              <CardDescription>ยังมีสต๊อก</CardDescription>
               <CardTitle className="text-3xl text-emerald-700">
-                {loading ? <Skeleton className="h-9 w-24" /> : totalRemaining}
+                {loading ? <Skeleton className="h-9 w-24" /> : availableItems.length}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="border-amber-100 bg-white/85 shadow-lg shadow-amber-100/60">
+          <Card className="border-rose-100 bg-white/85 shadow-lg shadow-rose-100/60">
             <CardHeader className="pb-2">
-              <CardDescription>รายการใกล้หมด</CardDescription>
-              <CardTitle className="text-3xl text-amber-700">
-                {loading ? <Skeleton className="h-9 w-16" /> : lowStockItems.length}
+              <CardDescription>หมดสต๊อก</CardDescription>
+              <CardTitle className="text-3xl text-rose-700">
+                {loading ? <Skeleton className="h-9 w-16" /> : outOfStockItems.length}
               </CardTitle>
             </CardHeader>
           </Card>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <section>
           <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -222,17 +267,36 @@ export default function StockOverviewPage() {
                     Stock List
                   </CardTitle>
                   <CardDescription>
-                    แสดงรายการทั้งหมดเรียงตามรหัสอุปกรณ์ โดยไม่แสดงรหัสในหน้า Stock
+                    กำลังแสดง: {stockFilterLabels[stockFilter]} · พบ {filteredEquipment.length} รายการ
                   </CardDescription>
                 </div>
-                <div className="relative w-full lg:max-w-xs">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="ค้นหาอุปกรณ์..."
-                    className="pl-9"
-                  />
+                <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] lg:max-w-xl">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="ค้นหาอุปกรณ์..."
+                      className="h-11 rounded-xl border-slate-200 bg-white pl-9"
+                    />
+                  </div>
+                  <Select
+                    value={stockFilter}
+                    onValueChange={(value) => setStockFilter(value as StockFilter)}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white font-medium">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4 text-blue-600" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="available">ยังมีสต๊อก</SelectItem>
+                      <SelectItem value="low">ใกล้หมด</SelectItem>
+                      <SelectItem value="out">หมดสต๊อก</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -257,41 +321,51 @@ export default function StockOverviewPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[72px] whitespace-nowrap">
+                          <TableHead className="w-[72px] whitespace-nowrap text-center">
                             รูป
                           </TableHead>
                           <TableHead className="min-w-[180px] whitespace-nowrap">
                             อุปกรณ์
                           </TableHead>
-                          <TableHead className="whitespace-nowrap text-right">
+                          <TableHead className="whitespace-nowrap text-center">
                             สต๊อกรวม
                           </TableHead>
-                          <TableHead className="whitespace-nowrap text-right">
+                          <TableHead className="whitespace-nowrap text-center">
                             ใช้ไป
                           </TableHead>
-                          <TableHead className="whitespace-nowrap text-right">
+                          <TableHead className="whitespace-nowrap text-center">
                             คงเหลือ
                           </TableHead>
-                          <TableHead className="whitespace-nowrap">หน่วย</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">สถานะ</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">หน่วย</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedEquipment.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell>
-                              <EquipmentImage item={item} />
+                              <div className="flex justify-center">
+                                <EquipmentImage item={item} />
+                              </div>
                             </TableCell>
                             <TableCell>{item.name}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-center">
                               {item.totalStock}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-center">
                               {item.used}
                             </TableCell>
-                            <TableCell className="text-right font-semibold">
+                            <TableCell className="text-center font-semibold">
                               {item.remaining}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="text-center">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getStockStatus(item).className}`}
+                              >
+                                {getStockStatus(item).label}
+                              </span>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-center">
                               {formatUnit(item)}
                             </TableCell>
                           </TableRow>
@@ -310,61 +384,6 @@ export default function StockOverviewPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                ใกล้หมด
-              </CardTitle>
-              <CardDescription>
-                รายการที่เหลือไม่เกิน {LOW_STOCK_THRESHOLD} หน่วย
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : lowStockItems.length === 0 ? (
-                <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
-                  ยังไม่มีรายการใกล้หมด
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    {paginatedLowStockItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <EquipmentImage item={item} size={36} />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-slate-900">
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-slate-600">
-                              เหลือน้อยกว่าที่กำหนด
-                            </p>
-                          </div>
-                        </div>
-                        <p className="shrink-0 text-sm font-semibold text-amber-800">
-                          {item.remaining} {item.baseUnit}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <PaginationControls
-                    page={currentLowStockPage}
-                    pageSize={LOW_STOCK_PAGE_SIZE}
-                    totalItems={lowStockItems.length}
-                    onPageChange={setLowStockPage}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </section>
       </div>
     </main>
