@@ -25,9 +25,10 @@ export default function Home() {
     try {
       const response = await fetch("/api/equipment")
       const data = await response.json()
-      setEquipment(data)
+      setEquipment(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching equipment:", error)
+      setEquipment([])
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
