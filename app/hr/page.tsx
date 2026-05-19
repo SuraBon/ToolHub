@@ -67,6 +67,8 @@ type EquipmentDraft = {
   image: string
   name: string
   totalStock: string
+  stockMainUnit: string
+  stockBaseUnit: string
   used: string
   baseUnit: string
   mainUnit: string
@@ -86,6 +88,8 @@ const emptyEquipmentDraft: EquipmentDraft = {
   image: "",
   name: "",
   totalStock: "",
+  stockMainUnit: "",
+  stockBaseUnit: "",
   used: "0",
   baseUnit: "",
   mainUnit: "",
@@ -94,12 +98,22 @@ const emptyEquipmentDraft: EquipmentDraft = {
 
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
   if (!equipment) return emptyEquipmentDraft
+  const ratio = equipment.ratio && equipment.ratio > 0 ? equipment.ratio : 0
+  const hasMainUnit = Boolean(equipment.mainUnit && ratio)
+  const stockMainUnit = hasMainUnit
+    ? String(Math.floor(equipment.totalStock / ratio))
+    : ""
+  const stockBaseUnit = hasMainUnit
+    ? String(equipment.totalStock % ratio)
+    : String(equipment.totalStock)
 
   return {
     id: equipment.id,
     image: equipment.image || "",
     name: equipment.name,
     totalStock: String(equipment.totalStock),
+    stockMainUnit,
+    stockBaseUnit,
     used: String(equipment.used),
     baseUnit: equipment.baseUnit,
     mainUnit: equipment.mainUnit || "",
@@ -133,6 +147,11 @@ export default function HRDashboard() {
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
   const { toast } = useToast()
+  const parsedRatio = Number(equipmentDraft.ratio) || 0
+  const hasMainStockUnit = Boolean(equipmentDraft.mainUnit.trim() && parsedRatio > 0)
+  const computedTotalStock =
+    (Number(equipmentDraft.stockBaseUnit) || 0) +
+    (hasMainStockUnit ? (Number(equipmentDraft.stockMainUnit) || 0) * parsedRatio : 0)
 
   const filteredEquipment = React.useMemo(() => {
     const query = managementSearch.trim().toLowerCase()
@@ -412,10 +431,15 @@ export default function HRDashboard() {
   const handleSaveEquipment = async () => {
     setSavingEquipment(true)
     try {
+      const equipmentPayload = {
+        ...equipmentDraft,
+        totalStock: String(computedTotalStock),
+        used: editingEquipment ? equipmentDraft.used : "0",
+      }
       const response = await fetch("/api/equipment", {
         method: editingEquipment ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(equipmentDraft),
+        body: JSON.stringify(equipmentPayload),
       })
       const result = await response.json()
 
@@ -1028,30 +1052,6 @@ export default function HRDashboard() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalStock">สต๊อกรวม</Label>
-                <Input
-                  id="totalStock"
-                  type="number"
-                  min="0"
-                  value={equipmentDraft.totalStock}
-                  onChange={(event) =>
-                    updateDraft("totalStock", event.target.value)
-                  }
-                />
-              </div>
-              {editingEquipment ? (
-                <div className="space-y-2">
-                  <Label htmlFor="used">ใช้ไป</Label>
-                  <Input
-                    id="used"
-                    type="number"
-                    min="0"
-                    value={equipmentDraft.used}
-                    onChange={(event) => updateDraft("used", event.target.value)}
-                  />
-                </div>
-              ) : null}
-              <div className="space-y-2">
                 <Label htmlFor="baseUnit">หน่วยย่อย</Label>
                 <Input
                   id="baseUnit"
@@ -1071,7 +1071,7 @@ export default function HRDashboard() {
                   }
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor="ratio">
                   อัตราส่วน (จำนวนหน่วยย่อยต่อ 1 หน่วยใหญ่)
                 </Label>
@@ -1083,6 +1083,62 @@ export default function HRDashboard() {
                   onChange={(event) => updateDraft("ratio", event.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="stockMainUnit">
+                  สต๊อกหน่วยใหญ่
+                  {equipmentDraft.mainUnit ? ` (${equipmentDraft.mainUnit})` : ""}
+                </Label>
+                <Input
+                  id="stockMainUnit"
+                  type="number"
+                  min="0"
+                  value={equipmentDraft.stockMainUnit}
+                  onChange={(event) =>
+                    updateDraft("stockMainUnit", event.target.value)
+                  }
+                  disabled={!hasMainStockUnit}
+                  placeholder={
+                    hasMainStockUnit ? "0" : "กรอกหน่วยใหญ่และอัตราส่วนก่อน"
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stockBaseUnit">
+                  สต๊อกหน่วยย่อย
+                  {equipmentDraft.baseUnit ? ` (${equipmentDraft.baseUnit})` : ""}
+                </Label>
+                <Input
+                  id="stockBaseUnit"
+                  type="number"
+                  min="0"
+                  value={equipmentDraft.stockBaseUnit}
+                  onChange={(event) =>
+                    updateDraft("stockBaseUnit", event.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalStock">สต๊อกรวม</Label>
+                <Input
+                  id="totalStock"
+                  type="number"
+                  value={computedTotalStock}
+                  readOnly
+                  className="bg-slate-50 font-semibold"
+                />
+              </div>
+              {editingEquipment ? (
+                <div className="space-y-2">
+                  <Label htmlFor="used">ใช้ไป</Label>
+                  <Input
+                    id="used"
+                    type="number"
+                    min="0"
+                    value={equipmentDraft.used}
+                    onChange={(event) => updateDraft("used", event.target.value)}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <DialogFooter>
