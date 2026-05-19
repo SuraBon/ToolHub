@@ -1,4 +1,5 @@
 import { getSheetsClient } from "@/lib/google-sheets"
+import { requireEnv } from "@/lib/env"
 import {
   AUDIT_LOG_HEADERS,
   AUDIT_LOG_SHEET_NAME,
@@ -23,7 +24,7 @@ function formatAuditTimestamp(date: Date) {
 
 async function ensureAuditLogSheetExists() {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const metadata = await sheets.spreadsheets.get({
     spreadsheetId,
     fields: "sheets.properties",
@@ -71,7 +72,7 @@ async function ensureAuditLogSheetExists() {
 export async function logAdminEvent(event: AuditLogEvent) {
   try {
     const sheets = await ensureAuditLogSheetExists()
-    const spreadsheetId = process.env.SPREADSHEET_ID
+    const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,

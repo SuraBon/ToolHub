@@ -1,5 +1,7 @@
 import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
+import { requireEnv } from "@/lib/env"
+import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit"
 import {
   clearHrSessionCookie,
   hasHrSession,
@@ -7,22 +9,47 @@ import {
   setHrSessionCookie,
 } from "@/lib/hr-auth"
 
+const LOGIN_LIMIT = 5
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+
+function getClientKey(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const realIp = request.headers.get("x-real-ip")?.trim()
+
+  return `hr-login:${forwardedFor || realIp || "unknown"}`
+}
+
 export async function GET() {
   return jsonSuccess({ authenticated: await hasHrSession() })
 }
 
 export async function POST(request: Request) {
   try {
+    const clientKey = getClientKey(request)
+    const limit = checkRateLimit(clientKey, LOGIN_LIMIT, LOGIN_WINDOW_MS)
+
+    if (!limit.allowed) {
+      await logAdminEvent({
+        action: "hr_login_rate_limited",
+        detail: `ลองเข้าสู่ระบบถี่เกินไป รอ ${limit.retryAfterSeconds} วินาที`,
+      })
+      return jsonError(
+        `ลองรหัสผ่านถี่เกินไป กรุณารอ ${limit.retryAfterSeconds} วินาที`,
+        429
+      )
+    }
+
     const body = await request.json()
     const { password } = body
 
-    const correctPassword = process.env.HR_PASSWORD
+    const correctPassword = requireEnv("HR_PASSWORD")
 
-    if (!isHrPasswordConfigured() || !correctPassword) {
+    if (!isHrPasswordConfigured()) {
       return jsonError("ยังไม่ได้ตั้งค่า HR_PASSWORD", 500)
     }
 
     if (password === correctPassword) {
+      clearRateLimit(clientKey)
       await logAdminEvent({
         action: "hr_login_success",
         detail: "เข้าสู่ระบบ Management สำเร็จ",

@@ -84,6 +84,30 @@ type UploadResponse = {
   url: string
 }
 
+type EnvCheck = {
+  key: string
+  configured: boolean
+  required: boolean
+}
+
+type SystemStatus = {
+  ok: boolean
+  checkedAt: string
+  googleSheetsReady: boolean
+  blobReady: boolean
+  error: string | null
+  environment: EnvCheck[]
+  inventory: {
+    total: number
+    available: number
+    lowStock: number
+    outOfStock: number
+  } | null
+  history: {
+    total: number
+  } | null
+}
+
 type EquipmentDraft = {
   id: string
   image: string
@@ -161,15 +185,17 @@ export default function HRDashboard() {
   const [managementSearch, setManagementSearch] = React.useState("")
   const [inventoryPage, setInventoryPage] = React.useState(1)
   const [historyPage, setHistoryPage] = React.useState(1)
-  const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
-    "equipment"
-  )
+  const [activeTab, setActiveTab] =
+    React.useState<"equipment" | "history" | "monitoring">("equipment")
   const [editDialogOpen, setEditDialogOpen] = React.useState(false)
   const [editingEquipment, setEditingEquipment] =
     React.useState<Equipment | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Equipment | null>(null)
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
+  const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(
+    null
+  )
   const { toast } = useToast()
   const parsedRatio = Number(equipmentDraft.ratio) || 0
   const hasMainStockUnit = Boolean(equipmentDraft.mainUnit.trim() && parsedRatio > 0)
@@ -231,6 +257,15 @@ export default function HRDashboard() {
       ])
       setEquipment(Array.isArray(eqRes) ? sortEquipmentById(eqRes) : [])
       setHistory(Array.isArray(histRes) ? histRes : [])
+      try {
+        const status = await apiGet<SystemStatus>("/api/management-status", {
+          cache: "no-store",
+        })
+        setSystemStatus(status)
+      } catch (error) {
+        console.error("Error fetching system status:", error)
+        setSystemStatus(null)
+      }
     } catch (error) {
       console.error("Error fetching HR data:", error)
       toast({
@@ -633,6 +668,14 @@ export default function HRDashboard() {
             Request History
           </Button>
           <Button
+            variant={activeTab === "monitoring" ? "default" : "outline"}
+            onClick={() => setActiveTab("monitoring")}
+            className="gap-2"
+          >
+            <Shield className="h-4 w-4" />
+            Monitoring
+          </Button>
+          <Button
             type="button"
             variant="outline"
             onClick={() => setQrDialogOpen(true)}
@@ -787,7 +830,7 @@ export default function HRDashboard() {
               )}
             </CardContent>
           </Card>
-        ) : (
+        ) : activeTab === "history" ? (
           <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-xl">ประวัติการเบิก</CardTitle>
@@ -850,6 +893,142 @@ export default function HRDashboard() {
                     totalItems={history.length}
                     onPageChange={setHistoryPage}
                   />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle className="text-xl">Monitoring</CardTitle>
+                  <CardDescription>
+                    ตรวจสถานะ environment, Google Sheets, Blob และข้อมูลหลัก
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchData(false)}
+                  className="gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  รีเช็ก
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!systemStatus ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ยังไม่มีข้อมูลสถานะล่าสุด
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div
+                    className={`rounded-2xl border p-4 ${
+                      systemStatus.ok
+                        ? "border-emerald-100 bg-emerald-50 text-emerald-900"
+                        : "border-red-100 bg-red-50 text-red-900"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2 font-semibold">
+                        {systemStatus.ok ? (
+                          <Shield className="h-5 w-5" />
+                        ) : (
+                          <AlertTriangle className="h-5 w-5" />
+                        )}
+                        {systemStatus.ok ? "ระบบพร้อมใช้งาน" : "พบจุดที่ต้องตรวจสอบ"}
+                      </div>
+                      <span className="text-sm">อัปเดตล่าสุด: {systemStatus.checkedAt}</span>
+                    </div>
+                    {systemStatus.error ? (
+                      <p className="mt-2 text-sm">{systemStatus.error}</p>
+                    ) : null}
+                  </div>
+
+                  <section className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500">Google Sheets</p>
+                      <p className="mt-2 text-lg font-semibold">
+                        {systemStatus.googleSheetsReady ? "พร้อม" : "มีปัญหา"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500">Blob Upload</p>
+                      <p className="mt-2 text-lg font-semibold">
+                        {systemStatus.blobReady ? "พร้อม" : "ยังไม่ตั้งค่า"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500">อุปกรณ์ทั้งหมด</p>
+                      <p className="mt-2 text-lg font-semibold">
+                        {systemStatus.inventory?.total ?? "-"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500">ประวัติการเบิก</p>
+                      <p className="mt-2 text-lg font-semibold">
+                        {systemStatus.history?.total ?? "-"}
+                      </p>
+                    </div>
+                  </section>
+
+                  {systemStatus.inventory ? (
+                    <section className="grid gap-3 md:grid-cols-3">
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                        <p className="text-xs font-medium text-emerald-700">พร้อมเบิก</p>
+                        <p className="mt-2 text-2xl font-bold text-emerald-800">
+                          {systemStatus.inventory.available}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                        <p className="text-xs font-medium text-amber-700">ใกล้หมด</p>
+                        <p className="mt-2 text-2xl font-bold text-amber-800">
+                          {systemStatus.inventory.lowStock}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                        <p className="text-xs font-medium text-red-700">หมดสต๊อก</p>
+                        <p className="mt-2 text-2xl font-bold text-red-800">
+                          {systemStatus.inventory.outOfStock}
+                        </p>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className="rounded-xl border border-slate-200 bg-white">
+                    <div className="border-b border-slate-100 px-4 py-3 font-semibold">
+                      Environment
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {systemStatus.environment.map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                        >
+                          <div>
+                            <p className="font-medium">{item.key}</p>
+                            <p className="text-xs text-slate-500">
+                              {item.required ? "required" : "optional"}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              item.configured
+                                ? "bg-emerald-50 text-emerald-700"
+                                : item.required
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {item.configured ? "configured" : "missing"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </div>
               )}
             </CardContent>

@@ -12,6 +12,7 @@ import {
   stockReadRange,
   stockRowRange,
 } from "@/lib/google-sheets-ranges"
+import { requireEnv } from "@/lib/env"
 import { Equipment } from "@/types"
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -28,9 +29,9 @@ type EquipmentInput = Omit<
 
 export async function getSheetsClient() {
   const auth = new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
+    requireEnv("GOOGLE_CLIENT_EMAIL"),
     undefined,
-    process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    requireEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"),
     SCOPES
   )
 
@@ -88,7 +89,7 @@ async function ensureSheetExists(
 
 export async function ensureWorkbookSetup() {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
   await Promise.all([
     ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS),
@@ -178,7 +179,7 @@ function validateEquipmentInput(equipment: Equipment) {
 
 export async function getAllEquipmentData() {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
   await ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS)
 
@@ -193,7 +194,7 @@ export async function getAllEquipmentData() {
 
 export async function getRequisitionHistoryData() {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
   await ensureSheetExists(
     sheets,
@@ -241,7 +242,7 @@ function generateNextEquipmentId(equipment: Equipment[]) {
 
 export async function appendEquipment(input: EquipmentInput) {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData()
   const fallbackId = generateNextEquipmentId(existingEquipment)
   const equipment = normalizeEquipmentInput({ ...input, id: "" }, fallbackId)
@@ -269,7 +270,7 @@ export async function appendEquipment(input: EquipmentInput) {
 
 export async function updateEquipment(equipmentId: string, input: EquipmentInput) {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData()
   const rowIndex = existingEquipment.findIndex((item) => item.id === equipmentId)
 
@@ -301,7 +302,7 @@ export async function updateEquipment(equipmentId: string, input: EquipmentInput
 
 export async function deleteEquipment(equipmentId: string) {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData()
   const rowIndex = existingEquipment.findIndex((item) => item.id === equipmentId)
 
@@ -346,7 +347,7 @@ export async function deleteEquipment(equipmentId: string) {
 
 export async function appendRequisition(data: unknown[][]) {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
   await ensureSheetExists(
     sheets,
@@ -367,7 +368,7 @@ export async function appendRequisition(data: unknown[][]) {
 
 export async function updateStock(updates: Array<{ range: string; values: unknown[][] }>) {
   const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,

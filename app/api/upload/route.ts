@@ -4,6 +4,7 @@ import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import { requireHrSession } from "@/lib/hr-auth"
 import { generateSafeImageName, validateImageFile } from "@/lib/image-upload"
+import { hasEnv } from "@/lib/env"
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       return jsonError(validationError, 400)
     }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (!hasEnv("BLOB_READ_WRITE_TOKEN")) {
       return jsonError("ยังไม่ได้ตั้งค่า BLOB_READ_WRITE_TOKEN", 500)
     }
 
