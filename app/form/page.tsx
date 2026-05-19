@@ -90,17 +90,14 @@ export default function FormPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-700">
-              Equipment Requisition System
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">
+            <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
               แบบฟอร์มเบิกอุปกรณ์
             </h1>
           </div>
           <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
             <Link href="/">
               <ArrowLeft className="h-4 w-4" />
-              กลับ Dashboard
+              กลับภาพรวมสต๊อก
             </Link>
           </Button>
         </div>

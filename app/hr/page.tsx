@@ -1,8 +1,11 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
+  ArrowLeft,
   Edit,
   FileText,
   Lock,
@@ -10,6 +13,7 @@ import {
   Plus,
   Shield,
   Trash2,
+  Upload,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -91,6 +95,7 @@ function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
 }
 
 export default function HRDashboard() {
+  const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = React.useState(false)
   const [password, setPassword] = React.useState("")
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
@@ -98,6 +103,7 @@ export default function HRDashboard() {
   const [loading, setLoading] = React.useState(false)
   const [savingEquipment, setSavingEquipment] = React.useState(false)
   const [deletingEquipment, setDeletingEquipment] = React.useState(false)
+  const [uploadingImage, setUploadingImage] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
   )
@@ -158,6 +164,11 @@ export default function HRDashboard() {
     }
   }
 
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    router.push("/")
+  }
+
   const openAddDialog = () => {
     setEditingEquipment(null)
     setEquipmentDraft(emptyEquipmentDraft)
@@ -175,6 +186,45 @@ export default function HRDashboard() {
       ...current,
       [field]: value,
     }))
+  }
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "ไม่สามารถอัปโหลดรูปภาพได้")
+      }
+
+      updateDraft("image", result.url)
+      toast({
+        title: "อัปโหลดรูปสำเร็จ",
+        description: "ระบบใส่ URL รูปภาพให้แล้ว",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "อัปโหลดไม่สำเร็จ",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถอัปโหลดรูปภาพได้",
+      })
+    } finally {
+      setUploadingImage(false)
+      event.target.value = ""
+    }
   }
 
   const handleSaveEquipment = async () => {
@@ -255,7 +305,7 @@ export default function HRDashboard() {
             <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
               <Shield className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="text-2xl">HR Dashboard</CardTitle>
+            <CardTitle className="text-2xl">จัดการสต๊อก HR</CardTitle>
             <CardDescription>กรุณาใส่รหัสผ่านเพื่อเข้าสู่ระบบ</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -283,12 +333,8 @@ export default function HRDashboard() {
         <header className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-              <Shield className="h-4 w-4" />
-              Equipment Requisition System
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">
-              HR Dashboard
+            <h1 className="text-3xl font-bold tracking-tight">
+              จัดการสต๊อก HR
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               จัดการสต๊อกอุปกรณ์และดูประวัติการเบิก
@@ -298,14 +344,18 @@ export default function HRDashboard() {
               หน้านี้เข้ารหัสด้วยรหัสผ่าน HR ก่อนเพิ่ม แก้ไข หรือลบอุปกรณ์
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsAuthenticated(false)}
-            className="gap-2"
-          >
-            <Lock className="h-4 w-4" />
-            ออกจากระบบ
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4" />
+                กลับภาพรวมสต๊อก
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <Lock className="h-4 w-4" />
+              ออกจากระบบ
+            </Button>
+          </div>
           </div>
         </header>
 
@@ -532,14 +582,47 @@ export default function HRDashboard() {
                   onChange={(event) => updateDraft("name", event.target.value)}
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="image">URL รูปภาพ</Label>
-                <Input
-                  id="image"
-                  placeholder="https://example.com/image.jpg"
-                  value={equipmentDraft.image}
-                  onChange={(event) => updateDraft("image", event.target.value)}
-                />
+              <div className="space-y-3 sm:col-span-2">
+                <Label htmlFor="imageUpload">รูปภาพอุปกรณ์</Label>
+                <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                    {equipmentDraft.image ? (
+                      <Image
+                        src={equipmentDraft.image}
+                        alt={equipmentDraft.name || "รูปอุปกรณ์"}
+                        width={96}
+                        height={96}
+                        className="h-full w-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <Package className="h-8 w-8 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      id="imageUpload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                    <Input
+                      id="image"
+                      placeholder="หรือวาง URL รูปภาพ"
+                      value={equipmentDraft.image}
+                      onChange={(event) =>
+                        updateDraft("image", event.target.value)
+                      }
+                    />
+                    <p className="flex items-center gap-2 text-xs text-slate-500">
+                      <Upload className="h-3.5 w-3.5" />
+                      {uploadingImage
+                        ? "กำลังอัปโหลด..."
+                        : "อัปโหลดรูปได้สูงสุด 5MB หรือใส่ URL เอง"}
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="totalStock">สต๊อกรวม</Label>
@@ -623,7 +706,7 @@ export default function HRDashboard() {
                 ยืนยันการลบอุปกรณ์
               </DialogTitle>
               <DialogDescription>
-                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงใน Dashboard หรือฟอร์มเบิก
+                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าภาพรวมสต๊อกหรือฟอร์มเบิก
               </DialogDescription>
             </DialogHeader>
 

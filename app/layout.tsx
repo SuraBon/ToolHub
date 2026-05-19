@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "ระบบเบิกอุปกรณ์",
-  description: "Equipment Requisition System",
+  description: "ระบบเบิกและจัดการสต๊อกอุปกรณ์",
 }
 
 export default function RootLayout({

@@ -5,6 +5,26 @@ import { Equipment } from "@/types"
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 const STOCK_SHEET_NAME = "สต๊อกอุปกรณ์"
 const HISTORY_SHEET_NAME = "ประวัติการเบิก"
+const STOCK_HEADERS = [
+  "รหัสอุปกรณ์",
+  "รูปภาพ",
+  "ชื่ออุปกรณ์",
+  "สต๊อกรวม(หน่วยย่อย)",
+  "ใช้ไป(หน่วยย่อย)",
+  "คงเหลือ(หน่วยย่อย)",
+  "หน่วยย่อย",
+  "หน่วยใหญ่",
+  "อัตราส่วน",
+]
+const HISTORY_HEADERS = [
+  "เลขที่ใบเบิก",
+  "วันที่เบิก",
+  "ชื่อ-นามสกุล",
+  "แผนก",
+  "ชื่ออุปกรณ์",
+  "จำนวนที่เบิก",
+  "หน่วยที่เบิก",
+]
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -26,6 +46,68 @@ export async function getSheetsClient() {
 
   await auth.authorize()
   return google.sheets({ version: "v4", auth })
+}
+
+function columnLetter(columnCount: number) {
+  return String.fromCharCode("A".charCodeAt(0) + columnCount - 1)
+}
+
+async function ensureSheetExists(
+  sheets: Awaited<ReturnType<typeof getSheetsClient>>,
+  spreadsheetId: string | undefined,
+  sheetName: string,
+  headers: string[]
+) {
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties",
+  })
+  const existingSheet = metadata.data.sheets?.find(
+    (sheet) => sheet.properties?.title === sheetName
+  )
+
+  if (!existingSheet) {
+    try {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: sheetName,
+                },
+              },
+            },
+          ],
+        },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ""
+      if (!message.includes("already exists")) {
+        throw error
+      }
+    }
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${sheetName}!A1:${columnLetter(headers.length)}1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [headers],
+    },
+  })
+}
+
+export async function ensureWorkbookSetup() {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = process.env.SPREADSHEET_ID
+
+  await Promise.all([
+    ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS),
+    ensureSheetExists(sheets, spreadsheetId, HISTORY_SHEET_NAME, HISTORY_HEADERS),
+  ])
 }
 
 function toNumber(value: unknown, fallback = 0) {
@@ -112,6 +194,8 @@ export async function getAllEquipmentData() {
   const sheets = await getSheetsClient()
   const spreadsheetId = process.env.SPREADSHEET_ID
 
+  await ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS)
+
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: `${STOCK_SHEET_NAME}!A2:I`,
@@ -119,6 +203,35 @@ export async function getAllEquipmentData() {
 
   const rows = response.data.values || []
   return rows.map((row, index) => mapEquipmentRow(row as string[], index))
+}
+
+export async function getRequisitionHistoryData() {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = process.env.SPREADSHEET_ID
+
+  await ensureSheetExists(
+    sheets,
+    spreadsheetId,
+    HISTORY_SHEET_NAME,
+    HISTORY_HEADERS
+  )
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${HISTORY_SHEET_NAME}!A2:G`,
+  })
+
+  const rows = response.data.values || []
+
+  return rows.map((row) => ({
+    requisitionNumber: row[0] || "",
+    date: row[1] || "",
+    name: row[2] || "",
+    department: row[3] || "",
+    equipmentName: row[4] || "",
+    amount: row[5] || "",
+    unit: row[6] || "",
+  }))
 }
 
 export async function getAvailableEquipmentData() {
@@ -248,6 +361,13 @@ export async function appendRequisition(data: unknown[][]) {
   const sheets = await getSheetsClient()
   const spreadsheetId = process.env.SPREADSHEET_ID
 
+  await ensureSheetExists(
+    sheets,
+    spreadsheetId,
+    HISTORY_SHEET_NAME,
+    HISTORY_HEADERS
+  )
+
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: `${HISTORY_SHEET_NAME}!A:G`,
@@ -277,6 +397,11 @@ export async function updateStock(updates: Array<{ range: string; values: unknow
 export async function autoFillSampleData() {
   const sheets = await getSheetsClient()
   const spreadsheetId = process.env.SPREADSHEET_ID
+
+  await Promise.all([
+    ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS),
+    ensureSheetExists(sheets, spreadsheetId, HISTORY_SHEET_NAME, HISTORY_HEADERS),
+  ])
 
   const stockResponse = await sheets.spreadsheets.values.get({
     spreadsheetId,

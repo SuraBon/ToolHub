@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, ClipboardList, Lock, Package, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowRight, Lock, Package } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -27,7 +27,7 @@ import type { Equipment } from "@/types"
 
 const LOW_STOCK_THRESHOLD = 10
 
-export default function DashboardPage() {
+export default function StockOverviewPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const { toast } = useToast()
@@ -66,12 +66,8 @@ export default function DashboardPage() {
         <header className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-xl shadow-slate-200/70 backdrop-blur lg:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-              <Sparkles className="h-4 w-4" />
-              Equipment Requisition System
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-              Dashboard สต๊อกอุปกรณ์
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              ภาพรวมสต๊อกอุปกรณ์
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
               ตรวจสอบภาพรวมอุปกรณ์ที่พร้อมเบิก แล้วเข้าแบบฟอร์มเพื่อทำรายการ
@@ -87,7 +83,7 @@ export default function DashboardPage() {
             <Button asChild variant="outline" className="gap-2">
               <Link href="/hr">
                 <Lock className="h-4 w-4" />
-                HR Dashboard
+                จัดการสต๊อก HR
               </Link>
             </Button>
           </div>
@@ -217,26 +213,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </section>
-
-        <Card className="border-slate-200 bg-blue-50 shadow-sm">
-          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <ClipboardList className="h-5 w-5 text-blue-700" />
-                ต้องการเบิกอุปกรณ์?
-              </CardTitle>
-              <CardDescription className="mt-1 text-blue-900/70">
-                เปิดแบบฟอร์มเพื่อเลือกอุปกรณ์และบันทึกใบเบิกได้ทันที
-              </CardDescription>
-            </div>
-            <Button asChild className="gap-2">
-              <Link href="/form">
-                เปิดแบบฟอร์ม
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </main>
   )
