@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, ClipboardList, Lock, Package } from "lucide-react"
+import { AlertTriangle, ArrowRight, ClipboardList, Lock, Package, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -60,12 +60,14 @@ export default function DashboardPage() {
   )
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
       <Toaster />
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <header className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-xl shadow-slate-200/70 backdrop-blur lg:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-700">
+            <p className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
+              <Sparkles className="h-4 w-4" />
               Equipment Requisition System
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -89,29 +91,30 @@ export default function DashboardPage() {
               </Link>
             </Button>
           </div>
+          </div>
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-blue-100 bg-white/85 shadow-lg shadow-blue-100/60">
             <CardHeader className="pb-2">
               <CardDescription>รายการที่เบิกได้</CardDescription>
-              <CardTitle className="text-3xl">
+              <CardTitle className="text-3xl text-blue-700">
                 {loading ? <Skeleton className="h-9 w-20" /> : equipment.length}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-emerald-100 bg-white/85 shadow-lg shadow-emerald-100/60">
             <CardHeader className="pb-2">
               <CardDescription>คงเหลือรวม</CardDescription>
-              <CardTitle className="text-3xl">
+              <CardTitle className="text-3xl text-emerald-700">
                 {loading ? <Skeleton className="h-9 w-24" /> : totalRemaining}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-amber-100 bg-white/85 shadow-lg shadow-amber-100/60">
             <CardHeader className="pb-2">
               <CardDescription>รายการใกล้หมด</CardDescription>
-              <CardTitle className="text-3xl">
+              <CardTitle className="text-3xl text-amber-700">
                 {loading ? <Skeleton className="h-9 w-16" /> : lowStockItems.length}
               </CardTitle>
             </CardHeader>
@@ -119,7 +122,7 @@ export default function DashboardPage() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Package className="h-5 w-5 text-blue-600" />
@@ -145,7 +148,6 @@ export default function DashboardPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="whitespace-nowrap">รหัส</TableHead>
                         <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
                         <TableHead className="whitespace-nowrap text-right">
                           คงเหลือ
@@ -156,7 +158,6 @@ export default function DashboardPage() {
                     <TableBody>
                       {equipment.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.id}</TableCell>
                           <TableCell>{item.name}</TableCell>
                           <TableCell className="text-right font-semibold">
                             {item.remaining}
@@ -171,7 +172,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -202,7 +203,9 @@ export default function DashboardPage() {
                         <p className="truncate text-sm font-medium text-slate-900">
                           {item.name}
                         </p>
-                        <p className="text-xs text-slate-600">{item.id}</p>
+                        <p className="text-xs text-slate-600">
+                          เหลือน้อยกว่าที่กำหนด
+                        </p>
                       </div>
                       <p className="shrink-0 text-sm font-semibold text-amber-800">
                         {item.remaining} {item.baseUnit}

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import {
   appendEquipment,
   autoFillSampleData,
+  deleteEquipment,
   getAllEquipmentData,
   getAvailableEquipmentData,
   updateEquipment,
@@ -66,6 +67,33 @@ export async function PUT(request: Request) {
       {
         error:
           error instanceof Error ? error.message : "Failed to update equipment",
+      },
+      { status: 400 }
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const equipmentId = searchParams.get("id")?.trim()
+
+    if (!equipmentId) {
+      return NextResponse.json(
+        { error: "กรุณาระบุรหัสอุปกรณ์" },
+        { status: 400 }
+      )
+    }
+
+    await deleteEquipment(equipmentId)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting equipment:", error)
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete equipment",
       },
       { status: 400 }
     )

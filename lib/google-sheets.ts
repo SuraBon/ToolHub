@@ -200,6 +200,50 @@ export async function updateEquipment(equipmentId: string, input: EquipmentInput
   return equipment
 }
 
+export async function deleteEquipment(equipmentId: string) {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = process.env.SPREADSHEET_ID
+  const existingEquipment = await getAllEquipmentData()
+  const rowIndex = existingEquipment.findIndex((item) => item.id === equipmentId)
+
+  if (rowIndex === -1) {
+    throw new Error("ไม่พบอุปกรณ์ที่ต้องการลบ")
+  }
+
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties",
+  })
+  const stockSheet = metadata.data.sheets?.find(
+    (sheet) => sheet.properties?.title === STOCK_SHEET_NAME
+  )
+  const sheetId = stockSheet?.properties?.sheetId
+
+  if (sheetId === undefined || sheetId === null) {
+    throw new Error("ไม่พบชีตสต๊อกอุปกรณ์")
+  }
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex: rowIndex + 1,
+              endIndex: rowIndex + 2,
+            },
+          },
+        },
+      ],
+    },
+  })
+
+  return { id: equipmentId }
+}
+
 export async function appendRequisition(data: unknown[][]) {
   const sheets = await getSheetsClient()
   const spreadsheetId = process.env.SPREADSHEET_ID

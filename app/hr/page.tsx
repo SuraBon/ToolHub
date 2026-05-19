@@ -1,7 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { Edit, FileText, Lock, Package, Plus, Shield } from "lucide-react"
+import {
+  AlertTriangle,
+  Edit,
+  FileText,
+  Lock,
+  Package,
+  Plus,
+  Shield,
+  Trash2,
+} from "lucide-react"
 import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
@@ -88,12 +97,14 @@ export default function HRDashboard() {
   const [history, setHistory] = React.useState<RequisitionHistory[]>([])
   const [loading, setLoading] = React.useState(false)
   const [savingEquipment, setSavingEquipment] = React.useState(false)
+  const [deletingEquipment, setDeletingEquipment] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
   )
   const [editDialogOpen, setEditDialogOpen] = React.useState(false)
   const [editingEquipment, setEditingEquipment] =
     React.useState<Equipment | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<Equipment | null>(null)
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
   const { toast } = useToast()
@@ -202,13 +213,46 @@ export default function HRDashboard() {
     }
   }
 
+  const handleDeleteEquipment = async () => {
+    if (!deleteTarget) return
+
+    setDeletingEquipment(true)
+    try {
+      const response = await fetch(
+        `/api/equipment?id=${encodeURIComponent(deleteTarget.id)}`,
+        { method: "DELETE" }
+      )
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "ไม่สามารถลบอุปกรณ์ได้")
+      }
+
+      toast({
+        title: "ลบอุปกรณ์แล้ว",
+        description: deleteTarget.name,
+      })
+      setDeleteTarget(null)
+      await fetchData()
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "ลบไม่สำเร็จ",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถลบอุปกรณ์ได้",
+      })
+    } finally {
+      setDeletingEquipment(false)
+    }
+  }
+
   if (!isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#dbeafe_0,#f8fafc_42%,#eef2ff_100%)] p-4">
         <Toaster />
-        <Card className="w-full max-w-md border-slate-200 shadow-sm">
+        <Card className="w-full max-w-md border-white/80 bg-white/85 shadow-2xl shadow-blue-200/60 backdrop-blur">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
               <Shield className="h-6 w-6 text-white" />
             </div>
             <CardTitle className="text-2xl">HR Dashboard</CardTitle>
@@ -233,12 +277,14 @@ export default function HRDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#f1f5f9_100%)]">
       <Toaster />
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <header className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-700">
+            <p className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
+              <Shield className="h-4 w-4" />
               Equipment Requisition System
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">
@@ -246,6 +292,10 @@ export default function HRDashboard() {
             </h1>
             <p className="mt-2 text-sm text-slate-600">
               จัดการสต๊อกอุปกรณ์และดูประวัติการเบิก
+            </p>
+            <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <Lock className="h-4 w-4" />
+              หน้านี้เข้ารหัสด้วยรหัสผ่าน HR ก่อนเพิ่ม แก้ไข หรือลบอุปกรณ์
             </p>
           </div>
           <Button
@@ -256,6 +306,7 @@ export default function HRDashboard() {
             <Lock className="h-4 w-4" />
             ออกจากระบบ
           </Button>
+          </div>
         </header>
 
         <div className="flex flex-wrap gap-2">
@@ -278,7 +329,7 @@ export default function HRDashboard() {
         </div>
 
         {activeTab === "equipment" ? (
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -326,7 +377,7 @@ export default function HRDashboard() {
                         <TableHead className="whitespace-nowrap text-right">
                           อัตราส่วน
                         </TableHead>
-                        <TableHead className="whitespace-nowrap">
+                        <TableHead className="whitespace-nowrap text-right">
                           จัดการ
                         </TableHead>
                       </TableRow>
@@ -365,14 +416,26 @@ export default function HRDashboard() {
                             {item.ratio || "-"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">แก้ไข</span>
-                            </Button>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(item)}
+                                className="text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">แก้ไข</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteTarget(item)}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">ลบ</span>
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -383,7 +446,7 @@ export default function HRDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <CardTitle className="text-xl">ประวัติการเบิก</CardTitle>
               <CardDescription>ดูประวัติการเบิกอุปกรณ์ทั้งหมด</CardDescription>
@@ -544,6 +607,47 @@ export default function HRDashboard() {
               </Button>
               <Button onClick={handleSaveEquipment} disabled={savingEquipment}>
                 {savingEquipment ? "กำลังบันทึก..." : "บันทึก"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                ยืนยันการลบอุปกรณ์
+              </DialogTitle>
+              <DialogDescription>
+                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงใน Dashboard หรือฟอร์มเบิก
+              </DialogDescription>
+            </DialogHeader>
+
+            {deleteTarget && (
+              <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm">
+                <p className="font-semibold text-red-950">{deleteTarget.name}</p>
+                <p className="mt-1 text-red-800">รหัส: {deleteTarget.id}</p>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingEquipment}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteEquipment}
+                disabled={deletingEquipment}
+              >
+                {deletingEquipment ? "กำลังลบ..." : "ลบอุปกรณ์"}
               </Button>
             </DialogFooter>
           </DialogContent>
