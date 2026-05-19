@@ -40,81 +40,21 @@ import {
 } from "@/components/ui/table"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
+import { apiGet } from "@/lib/client-api"
+import {
+  LOW_STOCK_THRESHOLD,
+  type StockFilter,
+  equipmentMatchesFilter,
+  equipmentMatchesSearch,
+  formatEquipmentUnit,
+  getStockStatus,
+  sortEquipmentById,
+  stockFilterLabels,
+} from "@/lib/equipment-utils"
+import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 
-const LOW_STOCK_THRESHOLD = 10
 const STOCK_PAGE_SIZE = 10
-
-type StockFilter = "all" | "available" | "low" | "out"
-
-const stockFilterLabels: Record<StockFilter, string> = {
-  all: "ทั้งหมด",
-  available: "ยังมีสต๊อก",
-  low: "ใกล้หมด",
-  out: "หมดสต๊อก",
-}
-
-function equipmentMatchesSearch(item: Equipment, query: string) {
-  const normalizedQuery = query.trim().toLowerCase()
-  if (!normalizedQuery) return true
-
-  return [
-    item.name,
-    item.baseUnit,
-    item.mainUnit || "",
-    String(item.totalStock),
-    String(item.used),
-    String(item.remaining),
-  ]
-    .join(" ")
-    .toLowerCase()
-    .includes(normalizedQuery)
-}
-
-function equipmentMatchesFilter(item: Equipment, filter: StockFilter) {
-  if (filter === "available") return item.remaining > 0
-  if (filter === "low") {
-    return item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
-  }
-  if (filter === "out") return item.remaining <= 0
-  return true
-}
-
-function getEquipmentSortNumber(id: string) {
-  const match = id.match(/^EQ(\d+)$/i)
-  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
-}
-
-function sortEquipmentById(items: Equipment[]) {
-  return [...items].sort((a, b) => {
-    const numberDiff = getEquipmentSortNumber(a.id) - getEquipmentSortNumber(b.id)
-    if (numberDiff !== 0) return numberDiff
-    return a.id.localeCompare(b.id)
-  })
-}
-
-function formatUnit(item: Equipment) {
-  return item.mainUnit ? `${item.baseUnit}/${item.mainUnit}` : item.baseUnit
-}
-
-function getStockStatus(item: Equipment) {
-  if (item.remaining <= 0) {
-    return {
-      label: "หมดสต๊อก",
-      className: "bg-rose-50 text-rose-700 ring-rose-100",
-    }
-  }
-  if (item.remaining <= LOW_STOCK_THRESHOLD) {
-    return {
-      label: "ใกล้หมด",
-      className: "bg-amber-50 text-amber-700 ring-amber-100",
-    }
-  }
-  return {
-    label: "พร้อมเบิก",
-    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  }
-}
 
 function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
   return item.image ? (
@@ -147,8 +87,7 @@ export default function StockOverviewPage() {
 
   const fetchEquipment = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/equipment?scope=all")
-      const data = await response.json()
+      const data = await apiGet<Equipment[]>("/api/equipment?scope=all")
       setEquipment(Array.isArray(data) ? sortEquipmentById(data) : [])
     } catch (error) {
       console.error("Error fetching equipment:", error)
@@ -181,15 +120,10 @@ export default function StockOverviewPage() {
       equipmentMatchesFilter(item, stockFilter) &&
       equipmentMatchesSearch(item, searchQuery)
   )
-  const stockTotalPages = Math.max(
-    1,
-    Math.ceil(filteredEquipment.length / STOCK_PAGE_SIZE)
-  )
-  const currentStockPage = Math.min(stockPage, stockTotalPages)
-  const paginatedEquipment = filteredEquipment.slice(
-    (currentStockPage - 1) * STOCK_PAGE_SIZE,
-    currentStockPage * STOCK_PAGE_SIZE
-  )
+  const {
+    currentPage: currentStockPage,
+    items: paginatedEquipment,
+  } = paginateItems(filteredEquipment, stockPage, STOCK_PAGE_SIZE)
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
@@ -366,7 +300,7 @@ export default function StockOverviewPage() {
                               </span>
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-center">
-                              {formatUnit(item)}
+                              {formatEquipmentUnit(item)}
                             </TableCell>
                           </TableRow>
                         ))}

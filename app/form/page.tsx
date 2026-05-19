@@ -14,7 +14,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
+import { apiGet, apiPost } from "@/lib/client-api"
 import type { Equipment, RequisitionForm as RequisitionFormType } from "@/types"
+
+type RequisitionResponse = {
+  success: boolean
+  requisitionNumber: string
+}
 
 export default function FormPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
@@ -24,8 +30,7 @@ export default function FormPage() {
 
   const fetchEquipment = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/equipment?scope=all")
-      const data = await response.json()
+      const data = await apiGet<Equipment[]>("/api/equipment?scope=all")
       setEquipment(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching equipment:", error)
@@ -47,35 +52,20 @@ export default function FormPage() {
   const handleSubmit = async (data: RequisitionFormType) => {
     setSubmitting(true)
     try {
-      const response = await fetch("/api/requisition", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      const result = await apiPost<RequisitionResponse>("/api/requisition", data)
+
+      toast({
+        title: "บันทึกสำเร็จ",
+        description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
       })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast({
-          title: "บันทึกสำเร็จ",
-          description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
-        })
-        await fetchEquipment()
-      } else {
-        toast({
-          variant: "destructive",
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถบันทึกการเบิกได้",
-        })
-      }
+      await fetchEquipment()
     } catch (error) {
       console.error("Error submitting requisition:", error)
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกการเบิกได้",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถบันทึกการเบิกได้",
       })
     } finally {
       setSubmitting(false)

@@ -1,5 +1,6 @@
 import type { Equipment } from "@/types"
 import type { RequisitionPayload } from "@/lib/validation"
+import { stockUsageRange } from "@/lib/google-sheets-ranges"
 import { toBaseUnit } from "@/lib/unit-conversion"
 
 type StockUpdate = {
@@ -11,8 +12,6 @@ type StockCalculationResult = {
   stockUpdates: StockUpdate[]
   historyRows: unknown[][]
 }
-
-const STOCK_SHEET_NAME = "สต๊อกอุปกรณ์"
 
 export function calculateStockUpdates(
   requisition: RequisitionPayload,
@@ -88,7 +87,7 @@ export function calculateStockUpdates(
     const rowIndex = equipmentIndex + 2
 
     stockUpdates.push({
-      range: `${STOCK_SHEET_NAME}!E${rowIndex}:F${rowIndex}`,
+      range: stockUsageRange(rowIndex),
       values: [[equipment.used + requestedBaseUnits, equipment.remaining - requestedBaseUnits]],
     })
   }

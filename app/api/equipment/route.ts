@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { formatApiErrorMessage, jsonError, jsonSuccess } from "@/lib/api-response"
+import { logAdminEvent } from "@/lib/audit-log"
 import {
   appendEquipment,
   deleteEquipment,
@@ -39,6 +40,12 @@ export async function POST(request: Request) {
     const body = await request.json()
     const payload = validateEquipmentPayload(body)
     const equipment = await appendEquipment(payload)
+    await logAdminEvent({
+      action: "add_equipment",
+      detail: "เพิ่มอุปกรณ์ใหม่",
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+    })
 
     return jsonSuccess({ equipment }, 201)
   } catch (error) {
@@ -61,6 +68,12 @@ export async function PUT(request: Request) {
 
     const payload = validateEquipmentPayload({ ...body, id: equipmentId })
     const equipment = await updateEquipment(equipmentId, payload)
+    await logAdminEvent({
+      action: "update_equipment",
+      detail: "แก้ไขข้อมูลอุปกรณ์",
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+    })
 
     return jsonSuccess({ equipment })
   } catch (error) {
@@ -81,7 +94,13 @@ export async function DELETE(request: Request) {
       return jsonError("กรุณาระบุรหัสอุปกรณ์", 400)
     }
 
-    await deleteEquipment(equipmentId)
+    const equipment = await deleteEquipment(equipmentId)
+    await logAdminEvent({
+      action: "delete_equipment",
+      detail: "ลบอุปกรณ์",
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+    })
 
     return jsonSuccess({})
   } catch (error) {

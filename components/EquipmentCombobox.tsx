@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { equipmentMatchesSearch, formatEquipmentUnit } from "@/lib/equipment-utils"
+import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 
 const EQUIPMENT_PICKER_PAGE_SIZE = 9
@@ -24,27 +26,6 @@ interface EquipmentComboboxProps {
   equipment: Equipment[]
   value: string
   onSelect: (value: string) => void
-}
-
-function formatUnit(equipment: Equipment) {
-  return equipment.mainUnit
-    ? `${equipment.baseUnit}/${equipment.mainUnit}`
-    : equipment.baseUnit
-}
-
-function equipmentMatchesSearch(equipment: Equipment, query: string) {
-  const normalizedQuery = query.trim().toLowerCase()
-  if (!normalizedQuery) return true
-
-  return [
-    equipment.name,
-    equipment.baseUnit,
-    equipment.mainUnit || "",
-    String(equipment.remaining),
-  ]
-    .join(" ")
-    .toLowerCase()
-    .includes(normalizedQuery)
 }
 
 function EquipmentThumb({
@@ -93,14 +74,10 @@ export function EquipmentCombobox({
     () => equipment.filter((eq) => equipmentMatchesSearch(eq, query)),
     [equipment, query]
   )
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredEquipment.length / EQUIPMENT_PICKER_PAGE_SIZE)
-  )
-  const currentPage = Math.min(page, totalPages)
-  const paginatedEquipment = filteredEquipment.slice(
-    (currentPage - 1) * EQUIPMENT_PICKER_PAGE_SIZE,
-    currentPage * EQUIPMENT_PICKER_PAGE_SIZE
+  const { currentPage, items: paginatedEquipment } = paginateItems(
+    filteredEquipment,
+    page,
+    EQUIPMENT_PICKER_PAGE_SIZE
   )
 
   React.useEffect(() => {
@@ -184,7 +161,7 @@ export function EquipmentCombobox({
                           <p className="mt-1 truncate text-xs text-slate-500">
                             {unavailable
                               ? "หมดสต๊อก"
-                              : `คงเหลือ: ${eq.remaining} ${formatUnit(eq)}`}
+                              : `คงเหลือ: ${eq.remaining} ${formatEquipmentUnit(eq)}`}
                           </p>
                         </div>
                       </button>

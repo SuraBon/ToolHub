@@ -1,30 +1,20 @@
 import { google } from "googleapis"
 
+import {
+  HISTORY_HEADERS,
+  HISTORY_SHEET_NAME,
+  STOCK_HEADERS,
+  STOCK_SHEET_NAME,
+  headerRange,
+  historyAppendRange,
+  historyReadRange,
+  stockAppendRange,
+  stockReadRange,
+  stockRowRange,
+} from "@/lib/google-sheets-ranges"
 import { Equipment } from "@/types"
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-const STOCK_SHEET_NAME = "สต๊อกอุปกรณ์"
-const HISTORY_SHEET_NAME = "ประวัติการเบิก"
-const STOCK_HEADERS = [
-  "รหัสอุปกรณ์",
-  "รูปภาพ",
-  "ชื่ออุปกรณ์",
-  "สต๊อกรวม(หน่วยย่อย)",
-  "ใช้ไป(หน่วยย่อย)",
-  "คงเหลือ(หน่วยย่อย)",
-  "หน่วยย่อย",
-  "หน่วยใหญ่",
-  "อัตราส่วน",
-]
-const HISTORY_HEADERS = [
-  "เลขที่ใบเบิก",
-  "วันที่เบิก",
-  "ชื่อ-นามสกุล",
-  "แผนก",
-  "ชื่ออุปกรณ์",
-  "จำนวนที่เบิก",
-  "หน่วยที่เบิก",
-]
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -46,10 +36,6 @@ export async function getSheetsClient() {
 
   await auth.authorize()
   return google.sheets({ version: "v4", auth })
-}
-
-function columnLetter(columnCount: number) {
-  return String.fromCharCode("A".charCodeAt(0) + columnCount - 1)
 }
 
 async function ensureSheetExists(
@@ -92,7 +78,7 @@ async function ensureSheetExists(
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${sheetName}!A1:${columnLetter(headers.length)}1`,
+    range: headerRange(sheetName, headers.length),
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [headers],
@@ -198,7 +184,7 @@ export async function getAllEquipmentData() {
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${STOCK_SHEET_NAME}!A2:I`,
+    range: stockReadRange(),
   })
 
   const rows = response.data.values || []
@@ -218,7 +204,7 @@ export async function getRequisitionHistoryData() {
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${HISTORY_SHEET_NAME}!A2:G`,
+    range: historyReadRange(),
   })
 
   const rows = response.data.values || []
@@ -271,7 +257,7 @@ export async function appendEquipment(input: EquipmentInput) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${STOCK_SHEET_NAME}!A:I`,
+    range: stockAppendRange(),
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [equipmentToRow(equipment)],
@@ -303,7 +289,7 @@ export async function updateEquipment(equipmentId: string, input: EquipmentInput
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${STOCK_SHEET_NAME}!A${rowIndex + 2}:I${rowIndex + 2}`,
+    range: stockRowRange(rowIndex + 2),
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [equipmentToRow(equipment)],
@@ -322,6 +308,7 @@ export async function deleteEquipment(equipmentId: string) {
   if (rowIndex === -1) {
     throw new Error("ไม่พบอุปกรณ์ที่ต้องการลบ")
   }
+  const deletedEquipment = existingEquipment[rowIndex]
 
   const metadata = await sheets.spreadsheets.get({
     spreadsheetId,
@@ -354,7 +341,7 @@ export async function deleteEquipment(equipmentId: string) {
     },
   })
 
-  return { id: equipmentId }
+  return deletedEquipment
 }
 
 export async function appendRequisition(data: unknown[][]) {
@@ -370,7 +357,7 @@ export async function appendRequisition(data: unknown[][]) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${HISTORY_SHEET_NAME}!A:G`,
+    range: historyAppendRange(),
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: data,

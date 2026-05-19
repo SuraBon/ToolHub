@@ -51,6 +51,9 @@ import {
 } from "@/components/ui/table"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/client-api"
+import { equipmentMatchesSearch, sortEquipmentById } from "@/lib/equipment-utils"
+import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 
 const INVENTORY_PAGE_SIZE = 10
@@ -64,6 +67,21 @@ interface RequisitionHistory {
   equipmentName: string
   amount: number
   unit: string
+}
+
+type AuthResponse = {
+  success: boolean
+  authenticated: boolean
+}
+
+type EquipmentResponse = {
+  success: boolean
+  equipment: Equipment
+}
+
+type UploadResponse = {
+  success: boolean
+  url: string
 }
 
 type EquipmentDraft = {
@@ -160,43 +178,18 @@ export default function HRDashboard() {
     (hasMainStockUnit ? (Number(equipmentDraft.stockMainUnit) || 0) * parsedRatio : 0)
 
   const filteredEquipment = React.useMemo(() => {
-    const query = managementSearch.trim().toLowerCase()
-    if (!query) return equipment
-
     return equipment.filter((item) =>
-      [
-        item.id,
-        item.name,
-        item.baseUnit,
-        item.mainUnit || "",
-        String(item.totalStock),
-        String(item.used),
-        String(item.remaining),
-        item.remaining <= 0 ? "หมด" : "พร้อมเบิก",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
+      equipmentMatchesSearch(item, managementSearch)
     )
   }, [equipment, managementSearch])
-  const inventoryTotalPages = Math.max(
-    1,
-    Math.ceil(filteredEquipment.length / INVENTORY_PAGE_SIZE)
-  )
-  const historyTotalPages = Math.max(
-    1,
-    Math.ceil(history.length / HISTORY_PAGE_SIZE)
-  )
-  const currentInventoryPage = Math.min(inventoryPage, inventoryTotalPages)
-  const currentHistoryPage = Math.min(historyPage, historyTotalPages)
-  const paginatedEquipment = filteredEquipment.slice(
-    (currentInventoryPage - 1) * INVENTORY_PAGE_SIZE,
-    currentInventoryPage * INVENTORY_PAGE_SIZE
-  )
-  const paginatedHistory = history.slice(
-    (currentHistoryPage - 1) * HISTORY_PAGE_SIZE,
-    currentHistoryPage * HISTORY_PAGE_SIZE
-  )
+  const {
+    currentPage: currentInventoryPage,
+    items: paginatedEquipment,
+  } = paginateItems(filteredEquipment, inventoryPage, INVENTORY_PAGE_SIZE)
+  const {
+    currentPage: currentHistoryPage,
+    items: paginatedHistory,
+  } = paginateItems(history, historyPage, HISTORY_PAGE_SIZE)
 
   React.useEffect(() => {
     setInventoryPage(1)
@@ -231,13 +224,13 @@ export default function HRDashboard() {
     }
     try {
       const [eqRes, histRes] = await Promise.all([
-        fetch("/api/equipment?scope=all"),
-        fetch("/api/requisition-history", { cache: "no-store" }),
+        apiGet<Equipment[]>("/api/equipment?scope=all"),
+        apiGet<RequisitionHistory[]>("/api/requisition-history", {
+          cache: "no-store",
+        }),
       ])
-      const eqData = await eqRes.json()
-      const histData = await histRes.json()
-      setEquipment(Array.isArray(eqData) ? eqData : [])
-      setHistory(Array.isArray(histData) ? histData : [])
+      setEquipment(Array.isArray(eqRes) ? sortEquipmentById(eqRes) : [])
+      setHistory(Array.isArray(histRes) ? histRes : [])
     } catch (error) {
       console.error("Error fetching HR data:", error)
       toast({
@@ -257,8 +250,9 @@ export default function HRDashboard() {
 
     async function checkHrSession() {
       try {
-        const response = await fetch("/api/hr-auth", { cache: "no-store" })
-        const result = await response.json()
+        const result = await apiGet<AuthResponse>("/api/hr-auth", {
+          cache: "no-store",
+        })
 
         if (!cancelled && result.authenticated) {
           setIsAuthenticated(true)
@@ -278,33 +272,25 @@ export default function HRDashboard() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("/api/hr-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      })
-      const result = await response.json()
+      const result = await apiPost<AuthResponse>("/api/hr-auth", { password })
       if (result.success) {
         setIsAuthenticated(true)
         fetchData()
-      } else {
-        toast({
-          variant: "destructive",
-          title: "รหัสผ่านไม่ถูกต้อง",
-        })
       }
     } catch (error) {
       console.error("Error authenticating:", error)
       toast({
         variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
+        title: "เข้าสู่ระบบไม่สำเร็จ",
+        description:
+          error instanceof Error ? error.message : "เกิดข้อผิดพลาด",
       })
     }
   }
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/hr-auth", { method: "DELETE" })
+      await apiDelete<AuthResponse>("/api/hr-auth")
     } catch (error) {
       console.error("Error clearing HR session:", error)
     }
@@ -458,15 +444,7 @@ export default function HRDashboard() {
       const fileName = imageEditor.file.name.replace(/\.[^.]+$/, ".jpg")
       formData.append("file", blob, fileName)
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "ไม่สามารถอัปโหลดรูปภาพได้")
-      }
+      const result = await apiPost<UploadResponse>("/api/upload", formData)
 
       updateDraft("image", result.url)
       toast({
@@ -494,16 +472,9 @@ export default function HRDashboard() {
         totalStock: String(computedTotalStock),
         used: editingEquipment ? equipmentDraft.used : "0",
       }
-      const response = await fetch("/api/equipment", {
-        method: editingEquipment ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(equipmentPayload),
-      })
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "ไม่สามารถบันทึกอุปกรณ์ได้")
-      }
+      const result = editingEquipment
+        ? await apiPut<EquipmentResponse>("/api/equipment", equipmentPayload)
+        : await apiPost<EquipmentResponse>("/api/equipment", equipmentPayload)
 
       toast({
         title: "บันทึกสำเร็จ",
@@ -546,15 +517,9 @@ export default function HRDashboard() {
 
     setDeletingEquipment(true)
     try {
-      const response = await fetch(
-        `/api/equipment?id=${encodeURIComponent(deleteTarget.id)}`,
-        { method: "DELETE" }
+      await apiDelete<{ success: boolean }>(
+        `/api/equipment?id=${encodeURIComponent(deleteTarget.id)}`
       )
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "ไม่สามารถลบอุปกรณ์ได้")
-      }
 
       toast({
         title: "ลบอุปกรณ์แล้ว",
