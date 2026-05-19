@@ -8,24 +8,34 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive> & {
-    dialogProps?: DialogProps
-  }
->(({ className, dialogProps, ...props }, ref) => (
-  <Dialog {...dialogProps}>
-    <DialogContent className="overflow-hidden p-0 shadow-lg">
-      <CommandPrimitive
-        ref={ref}
-        className={cn(
-          "flex h-full w-full flex-col overflow-hidden rounded-md bg-background text-sm",
-          className
-        )}
-        {...props}
-      />
-    </DialogContent>
-  </Dialog>
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive>
+>(({ className, ...props }, ref) => (
+  <CommandPrimitive
+    ref={ref}
+    className={cn(
+      "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+      className
+    )}
+    {...props}
+  />
 ))
 Command.displayName = CommandPrimitive.displayName
+
+const CommandDialog = ({
+  children,
+  dialogProps,
+}: {
+  children: React.ReactNode
+  dialogProps?: DialogProps
+}) => {
+  return (
+    <Dialog {...dialogProps}>
+      <DialogContent className="overflow-hidden p-0 shadow-lg">
+        <Command>{children}</Command>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
@@ -117,6 +127,7 @@ CommandShortcut.displayName = "CommandShortcut"
 
 export {
   Command,
+  CommandDialog,
   CommandInput,
   CommandList,
   CommandEmpty,
