@@ -37,11 +37,30 @@ function equipmentMatchesSearch(item: Equipment, query: string) {
     item.name,
     item.baseUnit,
     item.mainUnit || "",
+    String(item.totalStock),
+    String(item.used),
     String(item.remaining),
   ]
     .join(" ")
     .toLowerCase()
     .includes(normalizedQuery)
+}
+
+function getEquipmentSortNumber(id: string) {
+  const match = id.match(/^EQ(\d+)$/i)
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
+}
+
+function sortEquipmentById(items: Equipment[]) {
+  return [...items].sort((a, b) => {
+    const numberDiff = getEquipmentSortNumber(a.id) - getEquipmentSortNumber(b.id)
+    if (numberDiff !== 0) return numberDiff
+    return a.id.localeCompare(b.id)
+  })
+}
+
+function formatUnit(item: Equipment) {
+  return item.mainUnit ? `${item.baseUnit}/${item.mainUnit}` : item.baseUnit
 }
 
 function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
@@ -73,9 +92,9 @@ export default function StockOverviewPage() {
 
   const fetchEquipment = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/equipment")
+      const response = await fetch("/api/equipment?scope=all")
       const data = await response.json()
-      setEquipment(Array.isArray(data) ? data : [])
+      setEquipment(Array.isArray(data) ? sortEquipmentById(data) : [])
     } catch (error) {
       console.error("Error fetching equipment:", error)
       setEquipment([])
@@ -112,7 +131,7 @@ export default function StockOverviewPage() {
                 Stock
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-                ตรวจสอบสต๊อกอุปกรณ์ที่พร้อมเบิกและรายการใกล้หมด
+                ตรวจสอบสต๊อกอุปกรณ์ทั้งหมด รวมถึงรายการที่คงเหลือหมดแล้ว
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -142,7 +161,7 @@ export default function StockOverviewPage() {
         <section className="grid gap-4 md:grid-cols-3">
           <Card className="border-blue-100 bg-white/85 shadow-lg shadow-blue-100/60">
             <CardHeader className="pb-2">
-              <CardDescription>อุปกรณ์ที่เบิกได้</CardDescription>
+              <CardDescription>อุปกรณ์ทั้งหมด</CardDescription>
               <CardTitle className="text-3xl text-blue-700">
                 {loading ? <Skeleton className="h-9 w-20" /> : equipment.length}
               </CardTitle>
@@ -173,10 +192,10 @@ export default function StockOverviewPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Package className="h-5 w-5 text-blue-600" />
-                    Available Stock
+                    Stock List
                   </CardTitle>
                   <CardDescription>
-                    แสดงเฉพาะรายการที่ยังมีคงเหลือมากกว่า 0
+                    แสดงรายการทั้งหมดเรียงตามรหัสอุปกรณ์ โดยไม่แสดงรหัสในหน้า Stock
                   </CardDescription>
                 </div>
                 <div className="relative w-full lg:max-w-xs">
@@ -199,7 +218,7 @@ export default function StockOverviewPage() {
                 </div>
               ) : equipment.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600">
-                  ยังไม่มีอุปกรณ์ที่พร้อมเบิก
+                  ยังไม่มีอุปกรณ์ในระบบ
                 </div>
               ) : filteredEquipment.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600">
@@ -210,8 +229,18 @@ export default function StockOverviewPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[72px] whitespace-nowrap">รูป</TableHead>
-                        <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
+                        <TableHead className="w-[72px] whitespace-nowrap">
+                          รูป
+                        </TableHead>
+                        <TableHead className="min-w-[180px] whitespace-nowrap">
+                          อุปกรณ์
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap text-right">
+                          สต๊อกรวม
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap text-right">
+                          ใช้ไป
+                        </TableHead>
                         <TableHead className="whitespace-nowrap text-right">
                           คงเหลือ
                         </TableHead>
@@ -225,10 +254,18 @@ export default function StockOverviewPage() {
                             <EquipmentImage item={item} />
                           </TableCell>
                           <TableCell>{item.name}</TableCell>
+                          <TableCell className="text-right">
+                            {item.totalStock}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.used}
+                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             {item.remaining}
                           </TableCell>
-                          <TableCell>{item.baseUnit}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatUnit(item)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
