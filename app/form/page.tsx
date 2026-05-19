@@ -1,11 +1,9 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { ArrowLeft, Package } from "lucide-react"
+import { Package } from "lucide-react"
 
 import { RequisitionForm } from "@/components/RequisitionForm"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -34,8 +32,8 @@ export default function FormPage() {
       setEquipment([])
       toast({
         variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูลอุปกรณ์ได้",
+        title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¹„à¸”à¹‰",
       })
     } finally {
       setLoading(false)
@@ -61,23 +59,23 @@ export default function FormPage() {
 
       if (response.ok) {
         toast({
-          title: "บันทึกสำเร็จ",
-          description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
+          title: "à¸šà¸±à¸™à¸—à¸¶à¸à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
+          description: `à¹€à¸¥à¸‚à¸—à¸µà¹ˆà¹ƒà¸šà¹€à¸šà¸´à¸: ${result.requisitionNumber}`,
         })
         await fetchEquipment()
       } else {
         toast({
           variant: "destructive",
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถบันทึกการเบิกได้",
+          title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+          description: result.error || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¹€à¸šà¸´à¸à¹„à¸”à¹‰",
         })
       }
     } catch (error) {
       console.error("Error submitting requisition:", error)
       toast({
         variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกการเบิกได้",
+        title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+        description: "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¹€à¸šà¸´à¸à¹„à¸”à¹‰",
       })
     } finally {
       setSubmitting(false)
@@ -88,20 +86,6 @@ export default function FormPage() {
     <main className="min-h-screen bg-slate-50">
       <Toaster />
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
-              Request Form
-            </h1>
-          </div>
-          <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-              กลับ Stock
-            </Link>
-          </Button>
-        </div>
-
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -109,7 +93,7 @@ export default function FormPage() {
               Request Details
             </CardTitle>
             <CardDescription>
-              กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
+              à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸œà¸¹à¹‰à¹€à¸šà¸´à¸à¹à¸¥à¸°à¹€à¸¥à¸·à¸­à¸à¸£à¸²à¸¢à¸à¸²à¸£à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¸—à¸µà¹ˆà¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹€à¸šà¸´à¸
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
