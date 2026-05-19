@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PaginationControls } from "@/components/PaginationControls"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { Equipment } from "@/types"
 
@@ -121,14 +123,95 @@ export function EquipmentCombobox({
   }
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-h-[calc(100dvh-3rem)]">
+          <DialogHeader className="border-b border-slate-100 px-4 py-4 pr-12 sm:px-5">
+            <DialogTitle>เลือกอุปกรณ์</DialogTitle>
+            <DialogDescription>
+              ค้นหาแล้วเลือกอุปกรณ์ที่ต้องการเบิก
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ค้นหาอุปกรณ์..."
+                className="h-11 rounded-xl pl-9"
+              />
+            </div>
+
+            {filteredEquipment.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                ไม่พบรายการที่ตรงกับคำค้น
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col gap-3">
+                <div className="grid max-h-[58dvh] min-h-0 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {paginatedEquipment.map((eq) => {
+                    const selected = value === eq.id
+                    const unavailable = eq.remaining <= 0
+
+                    return (
+                      <button
+                        key={eq.id}
+                        type="button"
+                        onClick={() => !unavailable && handleSelect(eq.id)}
+                        disabled={unavailable}
+                        className={cn(
+                          "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                          unavailable
+                            ? "cursor-not-allowed opacity-55"
+                            : "hover:border-blue-200 hover:bg-blue-50",
+                          selected
+                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                            : "border-slate-200"
+                        )}
+                      >
+                        <EquipmentThumb equipment={eq} size="lg" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-slate-950">
+                              {eq.name}
+                            </p>
+                            {selected ? (
+                              <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                            ) : null}
+                          </div>
+                          <p className="mt-1 truncate text-xs text-slate-500">
+                            {unavailable
+                              ? "หมดสต๊อก"
+                              : `คงเหลือ: ${eq.remaining} ${formatUnit(eq)}`}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <PaginationControls
+                  page={currentPage}
+                  pageSize={EQUIPMENT_PICKER_PAGE_SIZE}
+                  totalItems={filteredEquipment.length}
+                  onPageChange={setPage}
+                  className="shrink-0"
+                />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div>
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
           <Button
             type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            onClick={() => setOpen(true)}
             className="h-11 w-full justify-between"
           >
             {selectedEquipment ? (
@@ -142,79 +225,7 @@ export function EquipmentCombobox({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </motion.div>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-[min(760px,calc(100vw-2rem))] rounded-2xl p-3"
-      >
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="ค้นหาอุปกรณ์..."
-              className="h-11 rounded-xl pl-9"
-            />
-          </div>
-
-          {filteredEquipment.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-              ไม่พบรายการที่ตรงกับคำค้น
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-                {paginatedEquipment.map((eq) => {
-                  const selected = value === eq.id
-                  const unavailable = eq.remaining <= 0
-
-                  return (
-                    <button
-                      key={eq.id}
-                      type="button"
-                      onClick={() => !unavailable && handleSelect(eq.id)}
-                      disabled={unavailable}
-                      className={cn(
-                        "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-                        unavailable
-                          ? "cursor-not-allowed opacity-55"
-                          : "hover:border-blue-200 hover:bg-blue-50",
-                        selected
-                          ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
-                          : "border-slate-200"
-                      )}
-                    >
-                      <EquipmentThumb equipment={eq} size="lg" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-slate-950">
-                            {eq.name}
-                          </p>
-                        {selected ? (
-                          <Check className="h-4 w-4 shrink-0 text-blue-600" />
-                        ) : null}
-                      </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        {unavailable
-                          ? "หมดสต๊อก"
-                          : `คงเหลือ: ${eq.remaining} ${formatUnit(eq)}`}
-                      </p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-              <PaginationControls
-                page={currentPage}
-                pageSize={EQUIPMENT_PICKER_PAGE_SIZE}
-                totalItems={filteredEquipment.length}
-                onPageChange={setPage}
-              />
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </div>
+    </>
   )
 }
