@@ -393,39 +393,3 @@ export async function updateStock(updates: Array<{ range: string; values: unknow
     },
   })
 }
-
-export async function autoFillSampleData() {
-  const sheets = await getSheetsClient()
-  const spreadsheetId = process.env.SPREADSHEET_ID
-
-  await Promise.all([
-    ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS),
-    ensureSheetExists(sheets, spreadsheetId, HISTORY_SHEET_NAME, HISTORY_HEADERS),
-  ])
-
-  const stockResponse = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${STOCK_SHEET_NAME}!A2:I2`,
-  })
-
-  if (stockResponse.data.values && stockResponse.data.values.length > 0) {
-    return
-  }
-
-  const sampleEquipment = [
-    ["EQ001", "", "กระดาษ A4", 5000, 0, 5000, "แผ่น", "รีม", 500],
-    ["EQ002", "", "ปากกาลูกลื่น", 1000, 0, 1000, "แท่ง", "กล่อง", 12],
-    ["EQ003", "", "ไม้บรรทัด", 200, 0, 200, "เส้น", "แพ็ค", 10],
-    ["EQ004", "", "สมุดจดบันทึก", 500, 0, 500, "เล่ม", "แพ็ค", 10],
-    ["EQ005", "", "กล่องไฟล์", 300, 0, 300, "กล่อง", "แพ็ค", 10],
-  ]
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${STOCK_SHEET_NAME}!A2:I`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: sampleEquipment,
-    },
-  })
-}

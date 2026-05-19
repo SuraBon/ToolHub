@@ -91,13 +91,13 @@ export default function FormPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
-              แบบฟอร์มเบิกอุปกรณ์
+              Request Form
             </h1>
           </div>
           <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
             <Link href="/">
               <ArrowLeft className="h-4 w-4" />
-              กลับภาพรวมสต๊อก
+              กลับ Stock
             </Link>
           </Button>
         </div>
@@ -106,10 +106,10 @@ export default function FormPage() {
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Package className="h-5 w-5 text-blue-600" />
-              รายละเอียดการเบิก
+              Request Details
             </CardTitle>
             <CardDescription>
-              กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการ
+              กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">

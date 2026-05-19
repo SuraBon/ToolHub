@@ -2,8 +2,8 @@ import { NextResponse } from "next/server"
 
 import {
   appendEquipment,
-  autoFillSampleData,
   deleteEquipment,
+  ensureWorkbookSetup,
   getAllEquipmentData,
   getAvailableEquipmentData,
   updateEquipment,
@@ -11,7 +11,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    await autoFillSampleData()
+    await ensureWorkbookSetup()
 
     const { searchParams } = new URL(request.url)
     const scope = searchParams.get("scope")

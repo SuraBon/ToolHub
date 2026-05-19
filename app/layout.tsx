@@ -5,8 +5,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ระบบเบิกอุปกรณ์",
-  description: "ระบบเบิกและจัดการสต๊อกอุปกรณ์",
+  title: "ToolHub Stock",
+  description: "Stock, Request Form และ Management สำหรับอุปกรณ์",
 }
 
 export default function RootLayout({

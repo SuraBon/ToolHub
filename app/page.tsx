@@ -67,23 +67,30 @@ export default function StockOverviewPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              ภาพรวมสต๊อกอุปกรณ์
+              Stock
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-              ตรวจสอบภาพรวมอุปกรณ์ที่พร้อมเบิก แล้วเข้าแบบฟอร์มเพื่อทำรายการ
+              ตรวจสอบสต๊อกอุปกรณ์ที่พร้อมเบิกและรายการใกล้หมด
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild className="gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              asChild
+              className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:bg-blue-700"
+            >
               <Link href="/form">
-                ไปที่แบบฟอร์มเบิกอุปกรณ์
+                เปิด Request Form
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="gap-2">
+            <Button
+              asChild
+              variant="outline"
+              className="h-12 gap-2 rounded-xl border-slate-200 bg-white/90 px-5 text-base font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            >
               <Link href="/hr">
                 <Lock className="h-4 w-4" />
-                จัดการสต๊อก HR
+                Management
               </Link>
             </Button>
           </div>
@@ -93,7 +100,7 @@ export default function StockOverviewPage() {
         <section className="grid gap-4 md:grid-cols-3">
           <Card className="border-blue-100 bg-white/85 shadow-lg shadow-blue-100/60">
             <CardHeader className="pb-2">
-              <CardDescription>รายการที่เบิกได้</CardDescription>
+              <CardDescription>อุปกรณ์ที่เบิกได้</CardDescription>
               <CardTitle className="text-3xl text-blue-700">
                 {loading ? <Skeleton className="h-9 w-20" /> : equipment.length}
               </CardTitle>
@@ -122,7 +129,7 @@ export default function StockOverviewPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Package className="h-5 w-5 text-blue-600" />
-                สต๊อกที่พร้อมเบิก
+                Available Stock
               </CardTitle>
               <CardDescription>
                 แสดงเฉพาะรายการที่ยังมีคงเหลือมากกว่า 0
