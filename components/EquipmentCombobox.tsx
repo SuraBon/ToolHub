@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PaginationControls } from "@/components/PaginationControls"
 import {
   Popover,
   PopoverContent,
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import type { Equipment } from "@/types"
+
+const EQUIPMENT_PICKER_PAGE_SIZE = 9
 
 interface EquipmentComboboxProps {
   equipment: Equipment[]
@@ -82,21 +85,39 @@ export function EquipmentCombobox({
 }: EquipmentComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
+  const [page, setPage] = React.useState(1)
   const selectedEquipment = equipment.find((eq) => eq.id === value)
   const filteredEquipment = React.useMemo(
     () => equipment.filter((eq) => equipmentMatchesSearch(eq, query)),
     [equipment, query]
   )
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEquipment.length / EQUIPMENT_PICKER_PAGE_SIZE)
+  )
+  const currentPage = Math.min(page, totalPages)
+  const paginatedEquipment = filteredEquipment.slice(
+    (currentPage - 1) * EQUIPMENT_PICKER_PAGE_SIZE,
+    currentPage * EQUIPMENT_PICKER_PAGE_SIZE
+  )
+
+  React.useEffect(() => {
+    setPage(1)
+  }, [query])
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen)
-    if (!nextOpen) setQuery("")
+    if (!nextOpen) {
+      setQuery("")
+      setPage(1)
+    }
   }
 
   const handleSelect = (equipmentId: string) => {
     onSelect(equipmentId === value ? "" : equipmentId)
     setOpen(false)
     setQuery("")
+    setPage(1)
   }
 
   return (
@@ -142,39 +163,47 @@ export function EquipmentCombobox({
               ไม่พบอุปกรณ์
             </div>
           ) : (
-            <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredEquipment.map((eq) => {
-                const selected = value === eq.id
+            <div className="space-y-3">
+              <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+                {paginatedEquipment.map((eq) => {
+                  const selected = value === eq.id
 
-                return (
-                  <button
-                    key={eq.id}
-                    type="button"
-                    onClick={() => handleSelect(eq.id)}
-                    className={cn(
-                      "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-                      selected
-                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
-                        : "border-slate-200"
-                    )}
-                  >
-                    <EquipmentThumb equipment={eq} size="lg" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-slate-950">
-                          {eq.name}
+                  return (
+                    <button
+                      key={eq.id}
+                      type="button"
+                      onClick={() => handleSelect(eq.id)}
+                      className={cn(
+                        "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                        selected
+                          ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                          : "border-slate-200"
+                      )}
+                    >
+                      <EquipmentThumb equipment={eq} size="lg" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-950">
+                            {eq.name}
+                          </p>
+                          {selected ? (
+                            <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                          ) : null}
+                        </div>
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          คงเหลือ: {eq.remaining} {formatUnit(eq)}
                         </p>
-                        {selected ? (
-                          <Check className="h-4 w-4 shrink-0 text-blue-600" />
-                        ) : null}
                       </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        คงเหลือ: {eq.remaining} {formatUnit(eq)}
-                      </p>
-                    </div>
-                  </button>
-                )
-              })}
+                    </button>
+                  )
+                })}
+              </div>
+              <PaginationControls
+                page={currentPage}
+                pageSize={EQUIPMENT_PICKER_PAGE_SIZE}
+                totalItems={filteredEquipment.length}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </div>

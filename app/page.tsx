@@ -6,6 +6,7 @@ import Link from "next/link"
 import { AlertTriangle, ArrowRight, Lock, Package, Search } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { PaginationControls } from "@/components/PaginationControls"
 import {
   Card,
   CardContent,
@@ -28,6 +29,8 @@ import { useToast } from "@/components/ui/use-toast"
 import type { Equipment } from "@/types"
 
 const LOW_STOCK_THRESHOLD = 10
+const STOCK_PAGE_SIZE = 10
+const LOW_STOCK_PAGE_SIZE = 6
 
 function equipmentMatchesSearch(item: Equipment, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
@@ -88,6 +91,8 @@ export default function StockOverviewPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [stockPage, setStockPage] = React.useState(1)
+  const [lowStockPage, setLowStockPage] = React.useState(1)
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -112,12 +117,34 @@ export default function StockOverviewPage() {
     fetchEquipment()
   }, [fetchEquipment])
 
+  React.useEffect(() => {
+    setStockPage(1)
+  }, [searchQuery])
+
   const totalRemaining = equipment.reduce((sum, item) => sum + item.remaining, 0)
   const lowStockItems = equipment.filter(
     (item) => item.remaining <= LOW_STOCK_THRESHOLD
   )
   const filteredEquipment = equipment.filter((item) =>
     equipmentMatchesSearch(item, searchQuery)
+  )
+  const stockTotalPages = Math.max(
+    1,
+    Math.ceil(filteredEquipment.length / STOCK_PAGE_SIZE)
+  )
+  const lowStockTotalPages = Math.max(
+    1,
+    Math.ceil(lowStockItems.length / LOW_STOCK_PAGE_SIZE)
+  )
+  const currentStockPage = Math.min(stockPage, stockTotalPages)
+  const currentLowStockPage = Math.min(lowStockPage, lowStockTotalPages)
+  const paginatedEquipment = filteredEquipment.slice(
+    (currentStockPage - 1) * STOCK_PAGE_SIZE,
+    currentStockPage * STOCK_PAGE_SIZE
+  )
+  const paginatedLowStockItems = lowStockItems.slice(
+    (currentLowStockPage - 1) * LOW_STOCK_PAGE_SIZE,
+    currentLowStockPage * LOW_STOCK_PAGE_SIZE
   )
 
   return (
@@ -225,51 +252,59 @@ export default function StockOverviewPage() {
                   ไม่พบรายการที่ตรงกับคำค้น
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[72px] whitespace-nowrap">
-                          รูป
-                        </TableHead>
-                        <TableHead className="min-w-[180px] whitespace-nowrap">
-                          อุปกรณ์
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
-                          สต๊อกรวม
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
-                          ใช้ไป
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap text-right">
-                          คงเหลือ
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap">หน่วย</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredEquipment.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <EquipmentImage item={item} />
-                          </TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell className="text-right">
-                            {item.totalStock}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.used}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {item.remaining}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {formatUnit(item)}
-                          </TableCell>
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[72px] whitespace-nowrap">
+                            รูป
+                          </TableHead>
+                          <TableHead className="min-w-[180px] whitespace-nowrap">
+                            อุปกรณ์
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-right">
+                            สต๊อกรวม
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-right">
+                            ใช้ไป
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-right">
+                            คงเหลือ
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">หน่วย</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedEquipment.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <EquipmentImage item={item} />
+                            </TableCell>
+                            <TableCell>{item.name}</TableCell>
+                            <TableCell className="text-right">
+                              {item.totalStock}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.used}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {item.remaining}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {formatUnit(item)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    page={currentStockPage}
+                    pageSize={STOCK_PAGE_SIZE}
+                    totalItems={filteredEquipment.length}
+                    onPageChange={setStockPage}
+                  />
                 </div>
               )}
             </CardContent>
@@ -296,28 +331,36 @@ export default function StockOverviewPage() {
                   ยังไม่มีรายการใกล้หมด
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {lowStockItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <EquipmentImage item={item} size={36} />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-900">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-slate-600">
-                            เหลือน้อยกว่าที่กำหนด
-                          </p>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    {paginatedLowStockItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <EquipmentImage item={item} size={36} />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-900">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-slate-600">
+                              เหลือน้อยกว่าที่กำหนด
+                            </p>
+                          </div>
                         </div>
+                        <p className="shrink-0 text-sm font-semibold text-amber-800">
+                          {item.remaining} {item.baseUnit}
+                        </p>
                       </div>
-                      <p className="shrink-0 text-sm font-semibold text-amber-800">
-                        {item.remaining} {item.baseUnit}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <PaginationControls
+                    page={currentLowStockPage}
+                    pageSize={LOW_STOCK_PAGE_SIZE}
+                    totalItems={lowStockItems.length}
+                    onPageChange={setLowStockPage}
+                  />
                 </div>
               )}
             </CardContent>

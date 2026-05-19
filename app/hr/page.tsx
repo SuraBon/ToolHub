@@ -23,6 +23,7 @@ import Image from "next/image"
 import QRCode from "qrcode"
 
 import { Button } from "@/components/ui/button"
+import { PaginationControls } from "@/components/PaginationControls"
 import {
   Card,
   CardContent,
@@ -51,6 +52,9 @@ import {
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import type { Equipment } from "@/types"
+
+const INVENTORY_PAGE_SIZE = 10
+const HISTORY_PAGE_SIZE = 12
 
 interface RequisitionHistory {
   requisitionNumber: string
@@ -137,6 +141,8 @@ export default function HRDashboard() {
   const [requestFormQr, setRequestFormQr] = React.useState("")
   const [qrDialogOpen, setQrDialogOpen] = React.useState(false)
   const [managementSearch, setManagementSearch] = React.useState("")
+  const [inventoryPage, setInventoryPage] = React.useState(1)
+  const [historyPage, setHistoryPage] = React.useState(1)
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
   )
@@ -173,6 +179,28 @@ export default function HRDashboard() {
         .includes(query)
     )
   }, [equipment, managementSearch])
+  const inventoryTotalPages = Math.max(
+    1,
+    Math.ceil(filteredEquipment.length / INVENTORY_PAGE_SIZE)
+  )
+  const historyTotalPages = Math.max(
+    1,
+    Math.ceil(history.length / HISTORY_PAGE_SIZE)
+  )
+  const currentInventoryPage = Math.min(inventoryPage, inventoryTotalPages)
+  const currentHistoryPage = Math.min(historyPage, historyTotalPages)
+  const paginatedEquipment = filteredEquipment.slice(
+    (currentInventoryPage - 1) * INVENTORY_PAGE_SIZE,
+    currentInventoryPage * INVENTORY_PAGE_SIZE
+  )
+  const paginatedHistory = history.slice(
+    (currentHistoryPage - 1) * HISTORY_PAGE_SIZE,
+    currentHistoryPage * HISTORY_PAGE_SIZE
+  )
+
+  React.useEffect(() => {
+    setInventoryPage(1)
+  }, [managementSearch])
 
   React.useEffect(() => {
     setRequestFormUrl(`${window.location.origin}/form`)
@@ -659,8 +687,9 @@ export default function HRDashboard() {
                   ไม่พบรายการที่ตรงกับคำค้น
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="whitespace-nowrap">รูปภาพ</TableHead>
@@ -692,7 +721,7 @@ export default function HRDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredEquipment.map((item) => (
+                      {paginatedEquipment.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
                             {item.image ? (
@@ -749,7 +778,14 @@ export default function HRDashboard() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    page={currentInventoryPage}
+                    pageSize={INVENTORY_PAGE_SIZE}
+                    totalItems={filteredEquipment.length}
+                    onPageChange={setInventoryPage}
+                  />
                 </div>
               )}
             </CardContent>
@@ -766,8 +802,9 @@ export default function HRDashboard() {
                   กำลังโหลด...
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="whitespace-nowrap">
@@ -788,7 +825,7 @@ export default function HRDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {history.map((item, index) => (
+                      {paginatedHistory.map((item, index) => (
                         <TableRow key={`${item.requisitionNumber}-${index}`}>
                           <TableCell className="font-semibold">
                             {item.requisitionNumber}
@@ -804,7 +841,14 @@ export default function HRDashboard() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    page={currentHistoryPage}
+                    pageSize={HISTORY_PAGE_SIZE}
+                    totalItems={history.length}
+                    onPageChange={setHistoryPage}
+                  />
                 </div>
               )}
             </CardContent>
