@@ -67,8 +67,6 @@ export const EquipmentPayloadSchema = z
     }
   })
 
-export type EquipmentPayload = z.infer<typeof EquipmentPayloadSchema>
-
 export function validateRequisitionPayload(input: unknown) {
   return RequisitionPayloadSchema.parse(input)
 }

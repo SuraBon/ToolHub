@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import Image from "next/image"
 import { AnimatePresence, motion } from "framer-motion"
 import { Package, Plus, Trash2 } from "lucide-react"

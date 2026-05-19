@@ -7,7 +7,7 @@ import { generateSafeImageName, validateImageFile } from "@/lib/image-upload"
 
 export async function POST(request: Request) {
   try {
-    const unauthorized = requireHrSession()
+    const unauthorized = await requireHrSession()
     if (unauthorized) return unauthorized
 
     const formData = await request.formData()

@@ -14,15 +14,13 @@ export const EquipmentSchema = z.object({
 
 export type Equipment = z.infer<typeof EquipmentSchema>
 
-export const RequisitionItemSchema = z.object({
+const RequisitionItemSchema = z.object({
   equipmentId: z.string(),
   equipmentName: z.string(),
   equipmentImage: z.string().optional(),
   amount: z.number().min(1, 'จำนวนต้องมากกว่า 0'),
   isMainUnit: z.boolean().default(false),
 })
-
-export type RequisitionItem = z.infer<typeof RequisitionItemSchema>
 
 export const RequisitionFormSchema = z.object({
   name: z.string().min(1, 'กรุณากรอกชื่อ'),

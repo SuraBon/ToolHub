@@ -32,7 +32,7 @@ export const AUDIT_LOG_HEADERS = [
   "ชื่ออุปกรณ์",
 ]
 
-export function columnLetter(columnCount: number) {
+function columnLetter(columnCount: number) {
   return String.fromCharCode("A".charCodeAt(0) + columnCount - 1)
 }
 

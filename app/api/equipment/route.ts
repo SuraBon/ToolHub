@@ -1,6 +1,4 @@
-import { NextResponse } from "next/server"
-
-import { formatApiErrorMessage, jsonError, jsonSuccess } from "@/lib/api-response"
+import { formatApiErrorMessage, jsonData, jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import {
   appendEquipment,
@@ -22,19 +20,16 @@ export async function GET(request: Request) {
     const equipment =
       scope === "all" ? await getAllEquipmentData() : await getAvailableEquipmentData()
 
-    return NextResponse.json(equipment)
+    return jsonData(equipment)
   } catch (error) {
     console.error("Error fetching equipment:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch equipment data" },
-      { status: 500 }
-    )
+    return jsonError("ไม่สามารถดึงข้อมูลอุปกรณ์ได้", 500)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const unauthorized = requireHrSession()
+    const unauthorized = await requireHrSession()
     if (unauthorized) return unauthorized
 
     const body = await request.json()
@@ -56,7 +51,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const unauthorized = requireHrSession()
+    const unauthorized = await requireHrSession()
     if (unauthorized) return unauthorized
 
     const body = await request.json()
@@ -84,7 +79,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const unauthorized = requireHrSession()
+    const unauthorized = await requireHrSession()
     if (unauthorized) return unauthorized
 
     const { searchParams } = new URL(request.url)

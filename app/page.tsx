@@ -42,7 +42,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { apiGet } from "@/lib/client-api"
 import {
-  LOW_STOCK_THRESHOLD,
   type StockFilter,
   equipmentMatchesFilter,
   equipmentMatchesSearch,
@@ -110,9 +109,6 @@ export default function StockOverviewPage() {
     setStockPage(1)
   }, [searchQuery, stockFilter])
 
-  const lowStockItems = equipment.filter(
-    (item) => item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
-  )
   const availableItems = equipment.filter((item) => item.remaining > 0)
   const outOfStockItems = equipment.filter((item) => item.remaining <= 0)
   const filteredEquipment = equipment.filter(

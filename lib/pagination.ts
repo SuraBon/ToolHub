@@ -1,8 +1,8 @@
-export function getTotalPages(totalItems: number, pageSize: number) {
+function getTotalPages(totalItems: number, pageSize: number) {
   return Math.max(1, Math.ceil(totalItems / pageSize))
 }
 
-export function clampPage(page: number, totalPages: number) {
+function clampPage(page: number, totalPages: number) {
   return Math.min(Math.max(1, page), Math.max(1, totalPages))
 }
 

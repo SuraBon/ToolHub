@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server"
-
 import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import {
@@ -10,7 +8,7 @@ import {
 } from "@/lib/hr-auth"
 
 export async function GET() {
-  return jsonSuccess({ authenticated: hasHrSession() })
+  return jsonSuccess({ authenticated: await hasHrSession() })
 }
 
 export async function POST(request: Request) {
@@ -50,6 +48,6 @@ export async function DELETE() {
   })
 
   return clearHrSessionCookie(
-    NextResponse.json({ success: true, authenticated: false })
+    jsonSuccess({ authenticated: false })
   )
 }

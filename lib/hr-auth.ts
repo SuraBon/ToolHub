@@ -48,7 +48,7 @@ function signaturesMatch(left: string, right: string) {
   )
 }
 
-export function createHrSessionToken() {
+function createHrSessionToken() {
   const payload: HrSessionPayload = {
     exp: Date.now() + SESSION_TTL_MS,
     nonce: crypto.randomUUID(),
@@ -58,7 +58,7 @@ export function createHrSessionToken() {
   return `${encodedPayload}.${sign(encodedPayload)}`
 }
 
-export function verifyHrSessionToken(token: string | undefined) {
+function verifyHrSessionToken(token: string | undefined) {
   if (!token) return false
 
   const [encodedPayload, signature, extra] = token.split(".")
@@ -77,12 +77,14 @@ export function verifyHrSessionToken(token: string | undefined) {
   return Number.isFinite(payload.exp) && payload.exp > Date.now()
 }
 
-export function hasHrSession() {
-  return verifyHrSessionToken(cookies().get(HR_SESSION_COOKIE)?.value)
+export async function hasHrSession() {
+  const cookieStore = await cookies()
+
+  return verifyHrSessionToken(cookieStore.get(HR_SESSION_COOKIE)?.value)
 }
 
-export function requireHrSession() {
-  if (hasHrSession()) return null
+export async function requireHrSession() {
+  if (await hasHrSession()) return null
 
   return jsonError("กรุณาเข้าสู่ระบบ Management ก่อน", 401)
 }

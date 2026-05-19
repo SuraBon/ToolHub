@@ -133,7 +133,7 @@ function equipmentToRow(equipment: Equipment) {
   ]
 }
 
-export function normalizeEquipmentInput(
+function normalizeEquipmentInput(
   input: EquipmentInput,
   fallbackId?: string
 ): Equipment {
@@ -160,7 +160,7 @@ export function normalizeEquipmentInput(
   }
 }
 
-export function validateEquipmentInput(equipment: Equipment) {
+function validateEquipmentInput(equipment: Equipment) {
   if (!equipment.id) return "กรุณาระบุรหัสอุปกรณ์"
   if (!equipment.name) return "กรุณาระบุชื่ออุปกรณ์"
   if (!equipment.baseUnit) return "กรุณาระบุหน่วยย่อย"
@@ -229,7 +229,7 @@ export async function getEquipmentData() {
   return getAllEquipmentData()
 }
 
-export function generateNextEquipmentId(equipment: Equipment[]) {
+function generateNextEquipmentId(equipment: Equipment[]) {
   const maxNumber = equipment.reduce((max, item) => {
     const match = item.id.match(/^EQ(\d+)$/i)
     if (!match) return max

@@ -12,6 +12,10 @@ export function jsonSuccess<T extends Record<string, unknown>>(
   return NextResponse.json({ success: true, ...data }, { status })
 }
 
+export function jsonData<T>(data: T, status = 200) {
+  return NextResponse.json(data, { status })
+}
+
 export function formatApiErrorMessage(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
     return error.issues[0]?.message || fallback
@@ -22,4 +26,8 @@ export function formatApiErrorMessage(error: unknown, fallback: string) {
   }
 
   return fallback
+}
+
+export function isValidationError(error: unknown) {
+  return error instanceof ZodError
 }
