@@ -106,7 +106,7 @@ export function EquipmentCombobox({
           <DialogHeader className="border-b border-slate-100 px-4 py-4 pr-12 sm:px-5">
             <DialogTitle>เลือกอุปกรณ์</DialogTitle>
             <DialogDescription>
-              ค้นหาแล้วเลือกอุปกรณ์ที่ต้องการเบิก
+              ค้นหาจากรหัสหรือชื่อ แล้วเลือกอุปกรณ์ที่ต้องการเบิก
             </DialogDescription>
           </DialogHeader>
 
@@ -116,7 +116,7 @@ export function EquipmentCombobox({
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="ค้นหาอุปกรณ์..."
+                placeholder="ค้นหารหัส ชื่อ หน่วย หรือสถานะ"
                 className="h-11 rounded-xl pl-9"
               />
             </div>
@@ -197,7 +197,7 @@ export function EquipmentCombobox({
                 <span className="truncate">{selectedEquipment.name}</span>
               </div>
             ) : (
-              <span className="text-muted-foreground">เลือกอุปกรณ์...</span>
+              <span className="text-muted-foreground">เลือกอุปกรณ์</span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>

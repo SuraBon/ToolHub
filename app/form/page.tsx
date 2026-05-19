@@ -55,7 +55,7 @@ export default function FormPage() {
       const result = await apiPost<RequisitionResponse>("/api/requisition", data)
 
       toast({
-        title: "บันทึกสำเร็จ",
+        title: "ส่งคำขอเบิกสำเร็จ",
         description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
       })
       await fetchEquipment()
@@ -65,7 +65,7 @@ export default function FormPage() {
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
         description:
-          error instanceof Error ? error.message : "ไม่สามารถบันทึกการเบิกได้",
+          error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกได้",
       })
     } finally {
       setSubmitting(false)
@@ -80,7 +80,7 @@ export default function FormPage() {
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Package className="h-5 w-5 text-blue-600" />
-              รายละเอียดการเบิก
+              ฟอร์มเบิกอุปกรณ์
             </CardTitle>
             <CardDescription>
               กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก

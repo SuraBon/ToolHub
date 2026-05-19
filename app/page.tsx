@@ -129,10 +129,10 @@ export default function StockOverviewPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Stock
+                คลังอุปกรณ์
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-                ตรวจสอบสต๊อกอุปกรณ์ทั้งหมด รวมถึงรายการที่คงเหลือหมดแล้ว
+                ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -142,7 +142,7 @@ export default function StockOverviewPage() {
               >
                 <Link href="/form">
                   <ClipboardList className="h-4 w-4" />
-                  เปิด Request Form
+                  เปิดฟอร์มเบิก
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -153,7 +153,7 @@ export default function StockOverviewPage() {
               >
                 <Link href="/hr">
                   <Lock className="h-4 w-4" />
-                  Management
+                  จัดการสต๊อก
                 </Link>
               </Button>
             </div>
@@ -194,7 +194,7 @@ export default function StockOverviewPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Package className="h-5 w-5 text-blue-600" />
-                    Stock List
+                    รายการสต๊อก
                   </CardTitle>
                   <CardDescription>
                     กำลังแสดง: {stockFilterLabels[stockFilter]} · พบ {filteredEquipment.length} รายการ
@@ -206,7 +206,7 @@ export default function StockOverviewPage() {
                     <Input
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="ค้นหาอุปกรณ์..."
+                      placeholder="ค้นหารหัส ชื่อ หน่วย หรือสถานะ"
                       className="h-11 rounded-xl border-slate-200 bg-white pl-9"
                     />
                   </div>
@@ -261,7 +261,7 @@ export default function StockOverviewPage() {
                             สต๊อกรวม
                           </TableHead>
                           <TableHead className="whitespace-nowrap text-center">
-                            ใช้ไป
+                            เบิกไปแล้ว
                           </TableHead>
                           <TableHead className="whitespace-nowrap text-center">
                             คงเหลือ

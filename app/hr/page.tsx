@@ -341,7 +341,7 @@ export default function HRDashboard() {
       await navigator.clipboard.writeText(requestFormUrl)
       toast({
         title: "คัดลอกลิงก์แล้ว",
-        description: "นำลิงก์ Request Form ไปใช้งานได้ทันที",
+        description: "นำลิงก์ฟอร์มเบิกไปใช้งานได้ทันที",
       })
     } catch (error) {
       console.error("Error copying request form URL:", error)
@@ -586,8 +586,8 @@ export default function HRDashboard() {
             <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
               <Shield className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="text-2xl">Management</CardTitle>
-            <CardDescription>กรุณาใส่รหัสผ่านเพื่อจัดการสต๊อก</CardDescription>
+            <CardTitle className="text-2xl">จัดการสต๊อก</CardTitle>
+            <CardDescription>เข้าสู่ระบบเพื่อจัดการอุปกรณ์และดูประวัติการเบิก</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
@@ -599,7 +599,7 @@ export default function HRDashboard() {
               className="h-12"
             />
             <Button onClick={handleLogin} className="h-12 w-full text-base">
-              เข้าสู่ระบบ
+              เข้าสู่ระบบจัดการ
             </Button>
             <Button
               asChild
@@ -608,7 +608,7 @@ export default function HRDashboard() {
             >
               <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
-                กลับ Stock
+                กลับหน้าสต๊อก
               </Link>
             </Button>
           </CardContent>
@@ -625,21 +625,21 @@ export default function HRDashboard() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Management
+              จัดการสต๊อก
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              เพิ่ม แก้ไข ลบอุปกรณ์ และดูประวัติ Request Form
+              เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิก และตรวจสถานะระบบ
             </p>
-            <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
               <Lock className="h-4 w-4" />
-              หน้านี้เข้ารหัสก่อนจัดการข้อมูลสต๊อก
+              <span className="min-w-0 break-words">ต้องเข้าสู่ระบบก่อนแก้ไขข้อมูลสต๊อก</span>
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="gap-2">
               <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
-                กลับ Stock
+                กลับหน้าสต๊อก
               </Link>
             </Button>
             <Button variant="outline" onClick={handleLogout} className="gap-2">
@@ -657,7 +657,7 @@ export default function HRDashboard() {
             className="gap-2"
           >
             <Package className="h-4 w-4" />
-            Inventory
+            อุปกรณ์
           </Button>
           <Button
             variant={activeTab === "history" ? "default" : "outline"}
@@ -665,7 +665,7 @@ export default function HRDashboard() {
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
-            Request History
+            ประวัติการเบิก
           </Button>
           <Button
             variant={activeTab === "monitoring" ? "default" : "outline"}
@@ -673,7 +673,7 @@ export default function HRDashboard() {
             className="gap-2"
           >
             <Shield className="h-4 w-4" />
-            Monitoring
+            สถานะระบบ
           </Button>
           <Button
             type="button"
@@ -682,7 +682,7 @@ export default function HRDashboard() {
             className="gap-2"
           >
             <QrCode className="h-4 w-4" />
-            Request QR
+            QR ฟอร์มเบิก
           </Button>
         </div>
 
@@ -691,9 +691,9 @@ export default function HRDashboard() {
             <CardHeader>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="text-xl">Inventory</CardTitle>
+                  <CardTitle className="text-xl">รายการอุปกรณ์</CardTitle>
                   <CardDescription>
-                    HR เห็นทุกรายการ รวมถึงรายการที่สต๊อกหมด
+                    จัดการรายการอุปกรณ์ทั้งหมด รวมถึงรายการที่หมดสต๊อก
                   </CardDescription>
                 </div>
                 <Button onClick={openAddDialog} className="gap-2">
@@ -739,7 +739,7 @@ export default function HRDashboard() {
                           สต๊อกรวม
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-center">
-                          ใช้ไป
+                          เบิกไปแล้ว
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-center">
                           คงเหลือ
@@ -902,9 +902,9 @@ export default function HRDashboard() {
             <CardHeader>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <CardTitle className="text-xl">Monitoring</CardTitle>
+                  <CardTitle className="text-xl">สถานะระบบ</CardTitle>
                   <CardDescription>
-                    ตรวจสถานะ environment, Google Sheets, Blob และข้อมูลหลัก
+                    ตรวจความพร้อมของการตั้งค่า การเชื่อมต่อ และข้อมูลหลัก
                   </CardDescription>
                 </div>
                 <Button
@@ -914,7 +914,7 @@ export default function HRDashboard() {
                   className="gap-2"
                 >
                   <Shield className="h-4 w-4" />
-                  รีเช็ก
+                  ตรวจอีกครั้ง
                 </Button>
               </div>
             </CardHeader>
@@ -956,7 +956,7 @@ export default function HRDashboard() {
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs font-medium text-slate-500">Blob Upload</p>
+                      <p className="text-xs font-medium text-slate-500">อัปโหลดรูป</p>
                       <p className="mt-2 text-lg font-semibold">
                         {systemStatus.blobReady ? "พร้อม" : "ยังไม่ตั้งค่า"}
                       </p>
@@ -1000,7 +1000,7 @@ export default function HRDashboard() {
 
                   <section className="rounded-xl border border-slate-200 bg-white">
                     <div className="border-b border-slate-100 px-4 py-3 font-semibold">
-                      Environment
+                      การตั้งค่าระบบ
                     </div>
                     <div className="divide-y divide-slate-100">
                       {systemStatus.environment.map((item) => (
@@ -1011,7 +1011,7 @@ export default function HRDashboard() {
                           <div>
                             <p className="font-medium">{item.key}</p>
                             <p className="text-xs text-slate-500">
-                              {item.required ? "required" : "optional"}
+                              {item.required ? "จำเป็น" : "ทางเลือก"}
                             </p>
                           </div>
                           <span
@@ -1023,7 +1023,7 @@ export default function HRDashboard() {
                                   : "bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {item.configured ? "configured" : "missing"}
+                            {item.configured ? "ตั้งค่าแล้ว" : "ยังไม่ตั้งค่า"}
                           </span>
                         </div>
                       ))}
@@ -1036,14 +1036,14 @@ export default function HRDashboard() {
         )}
 
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-blue-600" />
-                Request Form QR
+                QR ฟอร์มเบิก
               </DialogTitle>
               <DialogDescription>
-                สแกน QR เพื่อเปิดฟอร์มเบิกอุปกรณ์ หรือคัดลอกลิงก์ไปใช้งาน
+                สแกนเพื่อเปิดฟอร์มเบิก หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
               </DialogDescription>
             </DialogHeader>
 
@@ -1090,7 +1090,7 @@ export default function HRDashboard() {
                 {requestFormQr ? (
                   <Image
                     src={requestFormQr}
-                    alt="QR สำหรับเปิด Request Form"
+                    alt="QR สำหรับเปิดฟอร์มเบิก"
                     width={196}
                     height={196}
                     unoptimized
@@ -1105,13 +1105,13 @@ export default function HRDashboard() {
         </Dialog>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingEquipment ? "แก้ไขอุปกรณ์" : "เพิ่มอุปกรณ์"}
               </DialogTitle>
               <DialogDescription>
-                กรอกข้อมูลอุปกรณ์ ระบบจะคำนวณคงเหลือจากสต๊อกรวมและใช้ไป
+                กรอกข้อมูลอุปกรณ์ ระบบจะคำนวณสต๊อกรวมและยอดคงเหลือให้อัตโนมัติ
               </DialogDescription>
             </DialogHeader>
 
@@ -1246,7 +1246,7 @@ export default function HRDashboard() {
                             <Upload className="h-4 w-4" />
                             {uploadingImage
                               ? "กำลังอัปโหลด..."
-                              : "อัปโหลดรูปที่จัดแล้ว"}
+                              : "อัปโหลดรูปที่ปรับแล้ว"}
                           </Button>
                           <Button
                             type="button"
@@ -1255,7 +1255,7 @@ export default function HRDashboard() {
                             onClick={resetImageEditor}
                             disabled={uploadingImage}
                           >
-                            ยกเลิกการจัดรูป
+                            ยกเลิกการปรับรูป
                           </Button>
                         </div>
                       </div>
@@ -1353,7 +1353,7 @@ export default function HRDashboard() {
               </div>
               {editingEquipment ? (
                 <div className="space-y-2">
-                  <Label htmlFor="used">ใช้ไป</Label>
+                  <Label htmlFor="used">เบิกไปแล้ว</Label>
                   <Input
                     id="used"
                     type="number"
@@ -1374,7 +1374,7 @@ export default function HRDashboard() {
                 ยกเลิก
               </Button>
               <Button onClick={handleSaveEquipment} disabled={savingEquipment}>
-                {savingEquipment ? "กำลังบันทึก..." : "บันทึก"}
+                {savingEquipment ? "กำลังบันทึก..." : "บันทึกอุปกรณ์"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1384,7 +1384,7 @@ export default function HRDashboard() {
           open={Boolean(deleteTarget)}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />

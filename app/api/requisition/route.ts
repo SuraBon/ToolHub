@@ -31,14 +31,14 @@ export async function POST(request: Request) {
 
     return jsonSuccess({
       requisitionNumber,
-      message: "บันทึกการเบิกสำเร็จ",
+      message: "ส่งคำขอเบิกสำเร็จ",
     })
   } catch (error) {
     if (!isValidationError(error)) {
       console.error("Error processing requisition:", error)
     }
     return jsonError(
-      formatApiErrorMessage(error, "ไม่สามารถบันทึกการเบิกได้"),
+      formatApiErrorMessage(error, "ไม่สามารถส่งคำขอเบิกได้"),
       400
     )
   }

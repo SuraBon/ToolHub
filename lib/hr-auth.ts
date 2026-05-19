@@ -86,7 +86,7 @@ export async function hasHrSession() {
 export async function requireHrSession() {
   if (await hasHrSession()) return null
 
-  return jsonError("กรุณาเข้าสู่ระบบ Management ก่อน", 401)
+  return jsonError("กรุณาเข้าสู่ระบบจัดการสต๊อกก่อน", 401)
 }
 
 export function setHrSessionCookie(response: NextResponse) {

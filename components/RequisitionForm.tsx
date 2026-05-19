@@ -97,7 +97,7 @@ export function RequisitionForm({
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกการเบิกได้ กรุณาลองใหม่",
+        description: "ไม่สามารถส่งคำขอเบิกได้ กรุณาลองใหม่",
       })
     }
   }
@@ -123,11 +123,7 @@ export function RequisitionForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+          <div>
             <FormField
               control={form.control}
               name="name"
@@ -141,12 +137,8 @@ export function RequisitionForm({
                 </FormItem>
               )}
             />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          </div>
+          <div>
             <FormField
               control={form.control}
               name="department"
@@ -160,11 +152,11 @@ export function RequisitionForm({
                 </FormItem>
               )}
             />
-          </motion.div>
+          </div>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-semibold">รายการอุปกรณ์</h3>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
@@ -182,7 +174,7 @@ export function RequisitionForm({
                 }
               >
                 <Plus className="mr-2 h-4 w-4" />
-                เพิ่มรายการ
+                เพิ่มอุปกรณ์
               </Button>
             </motion.div>
           </div>
@@ -308,7 +300,7 @@ export function RequisitionForm({
             className="h-12 w-full text-base"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเบิก"}
+            {isSubmitting ? "กำลังส่งคำขอ..." : "ส่งคำขอเบิก"}
           </Button>
         </motion.div>
       </form>

@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "ToolHub Stock",
-  description: "Stock, Request Form และ Management สำหรับอุปกรณ์",
+  title: "คลังอุปกรณ์",
+  description: "ระบบตรวจสต๊อก เบิกอุปกรณ์ และจัดการคลัง",
 }
 
 export default function RootLayout({

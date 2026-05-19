@@ -52,14 +52,14 @@ export async function POST(request: Request) {
       clearRateLimit(clientKey)
       await logAdminEvent({
         action: "hr_login_success",
-        detail: "เข้าสู่ระบบ Management สำเร็จ",
+        detail: "เข้าสู่ระบบจัดการสต๊อกสำเร็จ",
       })
       return setHrSessionCookie(jsonSuccess({ authenticated: true }))
     }
 
     await logAdminEvent({
       action: "hr_login_failed",
-      detail: "เข้าสู่ระบบ Management ไม่สำเร็จ",
+      detail: "เข้าสู่ระบบจัดการสต๊อกไม่สำเร็จ",
     })
     return jsonError("รหัสผ่านไม่ถูกต้อง", 401)
   } catch (error) {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 export async function DELETE() {
   await logAdminEvent({
     action: "hr_logout",
-    detail: "ออกจากระบบ Management",
+    detail: "ออกจากระบบจัดการสต๊อก",
   })
 
   return clearHrSessionCookie(

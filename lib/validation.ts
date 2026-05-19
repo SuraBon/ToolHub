@@ -32,7 +32,7 @@ export const RequisitionPayloadSchema = z.object({
         isMainUnit: z.boolean().default(false),
       })
     )
-    .min(1, "กรุณาเพิ่มรายการอุปกรณ์อย่างน้อย 1 รายการ"),
+    .min(1, "กรุณาเพิ่มอุปกรณ์อย่างน้อย 1 รายการ"),
 })
 
 export type RequisitionPayload = z.infer<typeof RequisitionPayloadSchema>
