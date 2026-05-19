@@ -58,6 +58,7 @@ export function EquipmentCombobox({
       <PopoverTrigger asChild>
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
           <Button
+            type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
