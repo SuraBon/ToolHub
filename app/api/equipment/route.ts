@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { formatApiErrorMessage, jsonError, jsonSuccess } from "@/lib/api-response"
 import {
   appendEquipment,
   deleteEquipment,
@@ -8,6 +9,8 @@ import {
   getAvailableEquipmentData,
   updateEquipment,
 } from "@/lib/google-sheets"
+import { requireHrSession } from "@/lib/hr-auth"
+import { validateEquipmentPayload } from "@/lib/validation"
 
 export async function GET(request: Request) {
   try {
@@ -30,72 +33,59 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const equipment = await appendEquipment(body)
+    const unauthorized = requireHrSession()
+    if (unauthorized) return unauthorized
 
-    return NextResponse.json({ success: true, equipment }, { status: 201 })
+    const body = await request.json()
+    const payload = validateEquipmentPayload(body)
+    const equipment = await appendEquipment(payload)
+
+    return jsonSuccess({ equipment }, 201)
   } catch (error) {
     console.error("Error creating equipment:", error)
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to create equipment",
-      },
-      { status: 400 }
-    )
+    return jsonError(formatApiErrorMessage(error, "ไม่สามารถเพิ่มอุปกรณ์ได้"), 400)
   }
 }
 
 export async function PUT(request: Request) {
   try {
+    const unauthorized = requireHrSession()
+    if (unauthorized) return unauthorized
+
     const body = await request.json()
     const equipmentId = String(body.id || "").trim()
 
     if (!equipmentId) {
-      return NextResponse.json(
-        { error: "กรุณาระบุรหัสอุปกรณ์" },
-        { status: 400 }
-      )
+      return jsonError("กรุณาระบุรหัสอุปกรณ์", 400)
     }
 
-    const equipment = await updateEquipment(equipmentId, body)
+    const payload = validateEquipmentPayload({ ...body, id: equipmentId })
+    const equipment = await updateEquipment(equipmentId, payload)
 
-    return NextResponse.json({ success: true, equipment })
+    return jsonSuccess({ equipment })
   } catch (error) {
     console.error("Error updating equipment:", error)
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to update equipment",
-      },
-      { status: 400 }
-    )
+    return jsonError(formatApiErrorMessage(error, "ไม่สามารถแก้ไขอุปกรณ์ได้"), 400)
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    const unauthorized = requireHrSession()
+    if (unauthorized) return unauthorized
+
     const { searchParams } = new URL(request.url)
     const equipmentId = searchParams.get("id")?.trim()
 
     if (!equipmentId) {
-      return NextResponse.json(
-        { error: "กรุณาระบุรหัสอุปกรณ์" },
-        { status: 400 }
-      )
+      return jsonError("กรุณาระบุรหัสอุปกรณ์", 400)
     }
 
     await deleteEquipment(equipmentId)
 
-    return NextResponse.json({ success: true })
+    return jsonSuccess({})
   } catch (error) {
     console.error("Error deleting equipment:", error)
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to delete equipment",
-      },
-      { status: 400 }
-    )
+    return jsonError(formatApiErrorMessage(error, "ไม่สามารถลบอุปกรณ์ได้"), 400)
   }
 }

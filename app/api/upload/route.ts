@@ -1,39 +1,32 @@
-import { NextResponse } from "next/server"
 import { put } from "@vercel/blob"
+
+import { jsonError, jsonSuccess } from "@/lib/api-response"
+import { requireHrSession } from "@/lib/hr-auth"
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 export async function POST(request: Request) {
   try {
+    const unauthorized = requireHrSession()
+    if (unauthorized) return unauthorized
+
     const formData = await request.formData()
     const file = formData.get("file")
 
     if (!(file instanceof File)) {
-      return NextResponse.json(
-        { error: "กรุณาเลือกไฟล์รูปภาพ" },
-        { status: 400 }
-      )
+      return jsonError("กรุณาเลือกไฟล์รูปภาพ", 400)
     }
 
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "รองรับเฉพาะไฟล์รูปภาพเท่านั้น" },
-        { status: 400 }
-      )
+      return jsonError("รองรับเฉพาะไฟล์รูปภาพเท่านั้น", 400)
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      return NextResponse.json(
-        { error: "รูปภาพต้องมีขนาดไม่เกิน 5MB" },
-        { status: 400 }
-      )
+      return jsonError("รูปภาพต้องมีขนาดไม่เกิน 5MB", 400)
     }
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json(
-        { error: "ยังไม่ได้ตั้งค่า BLOB_READ_WRITE_TOKEN" },
-        { status: 500 }
-      )
+      return jsonError("ยังไม่ได้ตั้งค่า BLOB_READ_WRITE_TOKEN", 500)
     }
 
     const extension = file.name.split(".").pop()?.toLowerCase() || "jpg"
@@ -42,15 +35,9 @@ export async function POST(request: Request) {
       access: "public",
     })
 
-    return NextResponse.json({
-      success: true,
-      url: blob.url,
-    })
+    return jsonSuccess({ url: blob.url })
   } catch (error) {
     console.error("Error uploading equipment image:", error)
-    return NextResponse.json(
-      { error: "ไม่สามารถอัปโหลดรูปภาพได้" },
-      { status: 500 }
-    )
+    return jsonError("ไม่สามารถอัปโหลดรูปภาพได้", 500)
   }
 }

@@ -252,6 +252,30 @@ export default function HRDashboard() {
     }
   }, [toast])
 
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function checkHrSession() {
+      try {
+        const response = await fetch("/api/hr-auth", { cache: "no-store" })
+        const result = await response.json()
+
+        if (!cancelled && result.authenticated) {
+          setIsAuthenticated(true)
+          void fetchData()
+        }
+      } catch (error) {
+        console.error("Error checking HR session:", error)
+      }
+    }
+
+    void checkHrSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchData])
+
   const handleLogin = async () => {
     try {
       const response = await fetch("/api/hr-auth", {
@@ -278,7 +302,13 @@ export default function HRDashboard() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/hr-auth", { method: "DELETE" })
+    } catch (error) {
+      console.error("Error clearing HR session:", error)
+    }
+
     setIsAuthenticated(false)
     router.push("/")
   }

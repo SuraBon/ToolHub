@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server"
+import { ZodError } from "zod"
+
+export function jsonError(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+export function jsonSuccess<T extends Record<string, unknown>>(
+  data: T,
+  status = 200
+) {
+  return NextResponse.json({ success: true, ...data }, { status })
+}
+
+export function formatApiErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ZodError) {
+    return error.issues[0]?.message || fallback
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
+}
