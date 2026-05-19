@@ -5,6 +5,7 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Plus, Trash2, Package } from "lucide-react"
 import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,13 +19,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { EquipmentCombobox } from "@/components/EquipmentCombobox"
 import { UnitSelector } from "@/components/UnitSelector"
-import { RequisitionFormSchema, RequisitionForm, Equipment } from "@/types"
-import { toBaseUnit, formatUnit } from "@/lib/unit-conversion"
+import { RequisitionFormSchema } from "@/types"
+import type { Equipment, RequisitionForm as RequisitionFormValues } from "@/types"
 import { useToast } from "@/components/ui/use-toast"
 
 interface RequisitionFormProps {
   equipment: Equipment[]
-  onSubmit: (data: RequisitionForm) => Promise<void>
+  onSubmit: (data: RequisitionFormValues) => Promise<void>
   isSubmitting?: boolean
 }
 
@@ -34,7 +35,7 @@ export function RequisitionForm({
   isSubmitting = false,
 }: RequisitionFormProps) {
   const { toast } = useToast()
-  const form = useForm<RequisitionForm>({
+  const form = useForm<RequisitionFormValues>({
     resolver: zodResolver(RequisitionFormSchema),
     defaultValues: {
       name: "",
@@ -53,7 +54,7 @@ export function RequisitionForm({
     name: "items",
   })
 
-  const handleSubmit = async (data: RequisitionForm) => {
+  const handleSubmit = async (data: RequisitionFormValues) => {
     try {
       await onSubmit(data)
       form.reset()
@@ -80,167 +81,203 @@ export function RequisitionForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>ชื่อ-นามสกุล</FormLabel>
-                <FormControl>
-                  <Input placeholder="กรอกชื่อ-นามสกุล" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>แผนก</FormLabel>
-                <FormControl>
-                  <Input placeholder="กรอกแผนก" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ชื่อ-นามสกุล</FormLabel>
+                  <FormControl>
+                    <Input placeholder="กรอกชื่อ-นามสกุล" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>แผนก</FormLabel>
+                  <FormControl>
+                    <Input placeholder="กรอกแผนก" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </motion.div>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">รายการอุปกรณ์</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                append({
-                  equipmentId: "",
-                  equipmentName: "",
-                  equipmentImage: "",
-                  amount: 1,
-                  isMainUnit: false,
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              เพิ่มรายการ
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  append({
+                    equipmentId: "",
+                    equipmentName: "",
+                    equipmentImage: "",
+                    amount: 1,
+                    isMainUnit: false,
+                  })
+                }
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                เพิ่มรายการ
+              </Button>
+            </motion.div>
           </div>
 
-          {fields.map((field, index) => {
-            const item = items[index]
-            const selectedEquipment = equipment.find(
-              (eq) => eq.id === item?.equipmentId
-            )
+          <AnimatePresence mode="popLayout">
+            {fields.map((field, index) => {
+              const item = items[index]
+              const selectedEquipment = equipment.find(
+                (eq) => eq.id === item?.equipmentId
+              )
 
-            return (
-              <div
-                key={field.id}
-                className="border rounded-lg p-4 space-y-4 bg-card"
-              >
-                <div className="flex items-start gap-4">
-                  {selectedEquipment?.image ? (
-                    <Image
-                      src={selectedEquipment.image}
-                      alt={selectedEquipment.name}
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 rounded object-cover flex-shrink-0"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                      <Package className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 space-y-4">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.equipmentId`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>อุปกรณ์</FormLabel>
-                          <FormControl>
-                            <EquipmentCombobox
-                              equipment={equipment}
-                              value={field.value}
-                              onSelect={(value) =>
-                                handleEquipmentSelect(index, value)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {selectedEquipment && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.amount`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>จำนวน</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      parseInt(e.target.value) || 0
-                                    )
-                                  }
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.isMainUnit`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>หน่วย</FormLabel>
-                              <FormControl>
-                                <UnitSelector
-                                  equipment={selectedEquipment}
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  {fields.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remove(index)}
+              return (
+                <motion.div
+                  key={field.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="border rounded-xl p-4 space-y-4 bg-card hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start gap-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1 }}
                       className="flex-shrink-0"
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+                      {selectedEquipment?.image ? (
+                        <Image
+                          src={selectedEquipment.image}
+                          alt={selectedEquipment.name}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                          <Package className="h-6 w-6 text-blue-600" />
+                        </div>
+                      )}
+                    </motion.div>
+                    <div className="flex-1 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.equipmentId`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>อุปกรณ์</FormLabel>
+                            <FormControl>
+                              <EquipmentCombobox
+                                equipment={equipment}
+                                value={field.value}
+                                onSelect={(value) =>
+                                  handleEquipmentSelect(index, value)
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {selectedEquipment && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="grid grid-cols-2 gap-4"
+                        >
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.amount`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>จำนวน</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    {...field}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        parseInt(e.target.value) || 0
+                                      )
+                                    }
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.isMainUnit`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>หน่วย</FormLabel>
+                                <FormControl>
+                                  <UnitSelector
+                                    equipment={selectedEquipment}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+                    </div>
+                    {fields.length > 1 && (
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => remove(index)}
+                          className="flex-shrink-0 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเบิก"}
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
+            {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเบิก"}
+          </Button>
+        </motion.div>
       </form>
     </Form>
   )

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Check, ChevronsUpDown, Package } from "lucide-react"
 import Image from "next/image"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -39,33 +40,43 @@ export function EquipmentCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          {selectedEquipment ? (
-            <div className="flex items-center gap-2">
-              {selectedEquipment.image ? (
-                <Image
-                  src={selectedEquipment.image}
-                  alt={selectedEquipment.name}
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 rounded object-cover"
-                  unoptimized
-                />
-              ) : (
-                <Package className="h-6 w-6 text-muted-foreground" />
-              )}
-              <span className="truncate">{selectedEquipment.name}</span>
-            </div>
-          ) : (
-            "เลือกอุปกรณ์..."
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between h-10"
+          >
+            {selectedEquipment ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex-shrink-0"
+                >
+                  {selectedEquipment.image ? (
+                    <Image
+                      src={selectedEquipment.image}
+                      alt={selectedEquipment.name}
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-lg object-cover shadow-sm"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                      <Package className="h-4 w-4 text-blue-600" />
+                    </div>
+                  )}
+                </motion.div>
+                <span className="truncate">{selectedEquipment.name}</span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground">เลือกอุปกรณ์...</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </motion.div>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <Command>
@@ -81,6 +92,7 @@ export function EquipmentCombobox({
                     onSelect(currentValue === value ? "" : currentValue)
                     setOpen(false)
                   }}
+                  className="cursor-pointer"
                 >
                   <Check
                     className={cn(
@@ -95,11 +107,13 @@ export function EquipmentCombobox({
                         alt={eq.name}
                         width={24}
                         height={24}
-                        className="h-6 w-6 rounded object-cover"
+                        className="h-6 w-6 rounded-lg object-cover shadow-sm"
                         unoptimized
                       />
                     ) : (
-                      <Package className="h-6 w-6 text-muted-foreground" />
+                      <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                        <Package className="h-4 w-4 text-blue-600" />
+                      </div>
                     )}
                     <span className="truncate">{eq.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">

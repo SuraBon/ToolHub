@@ -1,22 +1,73 @@
-import { NextResponse } from 'next/server'
-import { getEquipmentData, autoFillSampleData } from '@/lib/google-sheets'
+import { NextResponse } from "next/server"
 
-export async function GET() {
+import {
+  appendEquipment,
+  autoFillSampleData,
+  getAllEquipmentData,
+  getAvailableEquipmentData,
+  updateEquipment,
+} from "@/lib/google-sheets"
+
+export async function GET(request: Request) {
   try {
-    // Auto-fill sample data if sheet is empty
     await autoFillSampleData()
-    
-    const equipment = await getEquipmentData()
-    
-    // Filter out items with zero remaining stock
-    const availableEquipment = equipment.filter(item => item.remaining > 0)
-    
-    return NextResponse.json(availableEquipment)
+
+    const { searchParams } = new URL(request.url)
+    const scope = searchParams.get("scope")
+    const equipment =
+      scope === "all" ? await getAllEquipmentData() : await getAvailableEquipmentData()
+
+    return NextResponse.json(equipment)
   } catch (error) {
-    console.error('Error fetching equipment:', error)
+    console.error("Error fetching equipment:", error)
     return NextResponse.json(
-      { error: 'Failed to fetch equipment data' },
+      { error: "Failed to fetch equipment data" },
       { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const equipment = await appendEquipment(body)
+
+    return NextResponse.json({ success: true, equipment }, { status: 201 })
+  } catch (error) {
+    console.error("Error creating equipment:", error)
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create equipment",
+      },
+      { status: 400 }
+    )
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json()
+    const equipmentId = String(body.id || "").trim()
+
+    if (!equipmentId) {
+      return NextResponse.json(
+        { error: "กรุณาระบุรหัสอุปกรณ์" },
+        { status: 400 }
+      )
+    }
+
+    const equipment = await updateEquipment(equipmentId, body)
+
+    return NextResponse.json({ success: true, equipment })
+  } catch (error) {
+    console.error("Error updating equipment:", error)
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update equipment",
+      },
+      { status: 400 }
     )
   }
 }
