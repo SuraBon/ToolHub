@@ -2,18 +2,11 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { Check, ChevronsUpDown, Package } from "lucide-react"
+import { Check, ChevronsUpDown, Package, Search } from "lucide-react"
 import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
@@ -28,19 +21,56 @@ interface EquipmentComboboxProps {
   onSelect: (value: string) => void
 }
 
-function EquipmentThumb({ equipment }: { equipment: Equipment }) {
+function formatUnit(equipment: Equipment) {
+  return equipment.mainUnit
+    ? `${equipment.baseUnit}/${equipment.mainUnit}`
+    : equipment.baseUnit
+}
+
+function equipmentMatchesSearch(equipment: Equipment, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+
+  return [
+    equipment.name,
+    equipment.baseUnit,
+    equipment.mainUnit || "",
+    String(equipment.remaining),
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery)
+}
+
+function EquipmentThumb({
+  equipment,
+  size = "sm",
+}: {
+  equipment: Equipment
+  size?: "sm" | "lg"
+}) {
+  const className =
+    size === "lg"
+      ? "h-14 w-14 rounded-xl object-cover shadow-sm"
+      : "h-7 w-7 rounded-lg object-cover shadow-sm"
+  const iconClassName = size === "lg" ? "h-7 w-7" : "h-4 w-4"
+  const boxClassName =
+    size === "lg"
+      ? "flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100"
+      : "flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100"
+
   return equipment.image ? (
     <Image
       src={equipment.image}
       alt={equipment.name}
-      width={28}
-      height={28}
-      className="h-7 w-7 rounded-lg object-cover shadow-sm"
+      width={size === "lg" ? 56 : 28}
+      height={size === "lg" ? 56 : 28}
+      className={className}
       unoptimized
     />
   ) : (
-    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100">
-      <Package className="h-4 w-4 text-blue-600" />
+    <div className={boxClassName}>
+      <Package className={cn(iconClassName, "text-blue-600")} />
     </div>
   )
 }
@@ -51,10 +81,26 @@ export function EquipmentCombobox({
   onSelect,
 }: EquipmentComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState("")
   const selectedEquipment = equipment.find((eq) => eq.id === value)
+  const filteredEquipment = React.useMemo(
+    () => equipment.filter((eq) => equipmentMatchesSearch(eq, query)),
+    [equipment, query]
+  )
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) setQuery("")
+  }
+
+  const handleSelect = (equipmentId: string) => {
+    onSelect(equipmentId === value ? "" : equipmentId)
+    setOpen(false)
+    setQuery("")
+  }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
           <Button
@@ -76,40 +122,62 @@ export function EquipmentCombobox({
           </Button>
         </motion.div>
       </PopoverTrigger>
-      <PopoverContent className="w-[min(420px,calc(100vw-2rem))] p-0">
-        <Command>
-          <CommandInput placeholder="ค้นหาอุปกรณ์..." />
-          <CommandList>
-            <CommandEmpty>ไม่พบอุปกรณ์</CommandEmpty>
-            <CommandGroup>
-              {equipment.map((eq) => (
-                <CommandItem
-                  key={eq.id}
-                  value={`${eq.id} ${eq.name} ${eq.baseUnit} ${eq.mainUnit || ""}`}
-                  onSelect={() => {
-                    onSelect(eq.id === value ? "" : eq.id)
-                    setOpen(false)
-                  }}
-                  className="cursor-pointer"
-                >
-                  <Check
+      <PopoverContent
+        align="start"
+        className="w-[min(760px,calc(100vw-2rem))] rounded-2xl p-3"
+      >
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ค้นหาอุปกรณ์..."
+              className="h-11 rounded-xl pl-9"
+            />
+          </div>
+
+          {filteredEquipment.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+              ไม่พบอุปกรณ์
+            </div>
+          ) : (
+            <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredEquipment.map((eq) => {
+                const selected = value === eq.id
+
+                return (
+                  <button
+                    key={eq.id}
+                    type="button"
+                    onClick={() => handleSelect(eq.id)}
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      value === eq.id ? "opacity-100" : "opacity-0"
+                      "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                      selected
+                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                        : "border-slate-200"
                     )}
-                  />
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <EquipmentThumb equipment={eq} />
-                    <span className="truncate">{eq.name}</span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                      คงเหลือ: {eq.remaining} {eq.baseUnit}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                  >
+                    <EquipmentThumb equipment={eq} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-semibold text-slate-950">
+                          {eq.name}
+                        </p>
+                        {selected ? (
+                          <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        คงเหลือ: {eq.remaining} {formatUnit(eq)}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   )
