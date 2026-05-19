@@ -68,6 +68,14 @@ type EquipmentDraft = {
   ratio: string
 }
 
+type ImageEditorState = {
+  file: File
+  previewUrl: string
+  zoom: number
+  offsetX: number
+  offsetY: number
+}
+
 const emptyEquipmentDraft: EquipmentDraft = {
   id: "",
   image: "",
@@ -104,6 +112,8 @@ export default function HRDashboard() {
   const [savingEquipment, setSavingEquipment] = React.useState(false)
   const [deletingEquipment, setDeletingEquipment] = React.useState(false)
   const [uploadingImage, setUploadingImage] = React.useState(false)
+  const [imageEditor, setImageEditor] =
+    React.useState<ImageEditorState | null>(null)
   const [activeTab, setActiveTab] = React.useState<"equipment" | "history">(
     "equipment"
   )
@@ -188,16 +198,112 @@ export default function HRDashboard() {
     }))
   }
 
-  const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const resetImageEditor = React.useCallback(() => {
+    setImageEditor((current) => {
+      if (current) {
+        URL.revokeObjectURL(current.previewUrl)
+      }
+      return null
+    })
+  }, [])
+
+  React.useEffect(() => resetImageEditor, [resetImageEditor])
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "ไฟล์ไม่ถูกต้อง",
+        description: "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
+      })
+      event.target.value = ""
+      return
+    }
+
+    resetImageEditor()
+    setImageEditor({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    })
+    event.target.value = ""
+  }
+
+  const updateImageEditor = (
+    field: "zoom" | "offsetX" | "offsetY",
+    value: number
+  ) => {
+    setImageEditor((current) =>
+      current
+        ? {
+            ...current,
+            [field]: value,
+          }
+        : current
+    )
+  }
+
+  const createAdjustedImageBlob = (editor: ImageEditorState) => {
+    return new Promise<Blob>((resolve, reject) => {
+      const image = new window.Image()
+      image.onload = () => {
+        const size = 800
+        const canvas = document.createElement("canvas")
+        const context = canvas.getContext("2d")
+
+        if (!context) {
+          reject(new Error("ไม่สามารถเตรียมรูปภาพได้"))
+          return
+        }
+
+        canvas.width = size
+        canvas.height = size
+        context.fillStyle = "#f8fafc"
+        context.fillRect(0, 0, size, size)
+
+        const coverScale = Math.max(size / image.width, size / image.height)
+        const scale = coverScale * editor.zoom
+        const drawWidth = image.width * scale
+        const drawHeight = image.height * scale
+        const maxOffsetX = Math.max(0, (drawWidth - size) / 2)
+        const maxOffsetY = Math.max(0, (drawHeight - size) / 2)
+        const drawX =
+          (size - drawWidth) / 2 + (editor.offsetX / 100) * maxOffsetX
+        const drawY =
+          (size - drawHeight) / 2 + (editor.offsetY / 100) * maxOffsetY
+
+        context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob)
+            } else {
+              reject(new Error("ไม่สามารถสร้างไฟล์รูปภาพได้"))
+            }
+          },
+          "image/jpeg",
+          0.9
+        )
+      }
+      image.onerror = () => reject(new Error("ไม่สามารถอ่านไฟล์รูปภาพได้"))
+      image.src = editor.previewUrl
+    })
+  }
+
+  const handleAdjustedImageUpload = async () => {
+    if (!imageEditor) return
+
     setUploadingImage(true)
     try {
+      const blob = await createAdjustedImageBlob(imageEditor)
       const formData = new FormData()
-      formData.append("file", file)
+      const fileName = imageEditor.file.name.replace(/\.[^.]+$/, ".jpg")
+      formData.append("file", blob, fileName)
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -214,6 +320,7 @@ export default function HRDashboard() {
         title: "อัปโหลดรูปสำเร็จ",
         description: "ระบบใส่ URL รูปภาพให้แล้ว",
       })
+      resetImageEditor()
     } catch (error) {
       toast({
         variant: "destructive",
@@ -223,7 +330,6 @@ export default function HRDashboard() {
       })
     } finally {
       setUploadingImage(false)
-      event.target.value = ""
     }
   }
 
@@ -604,9 +710,105 @@ export default function HRDashboard() {
                       id="imageUpload"
                       type="file"
                       accept="image/*"
-                      onChange={handleImageUpload}
+                      onChange={handleImageSelect}
                       disabled={uploadingImage}
                     />
+                    {imageEditor && (
+                      <div className="space-y-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <div className="relative h-36 w-36 shrink-0 overflow-hidden rounded-xl border border-blue-200 bg-white">
+                            <Image
+                              src={imageEditor.previewUrl}
+                              alt="ตัวอย่างรูปที่กำลังจัดตำแหน่ง"
+                              width={144}
+                              height={144}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                              style={{
+                                transform: `translate(${imageEditor.offsetX}%, ${imageEditor.offsetY}%) scale(${imageEditor.zoom})`,
+                              }}
+                            />
+                            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/10" />
+                          </div>
+                          <div className="grid flex-1 gap-2">
+                            <div className="space-y-1">
+                              <Label htmlFor="imageZoom">ซูม</Label>
+                              <Input
+                                id="imageZoom"
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.05"
+                                value={imageEditor.zoom}
+                                onChange={(event) =>
+                                  updateImageEditor(
+                                    "zoom",
+                                    Number(event.target.value)
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="imageOffsetX">เลื่อนซ้าย-ขวา</Label>
+                              <Input
+                                id="imageOffsetX"
+                                type="range"
+                                min="-50"
+                                max="50"
+                                step="1"
+                                value={imageEditor.offsetX}
+                                onChange={(event) =>
+                                  updateImageEditor(
+                                    "offsetX",
+                                    Number(event.target.value)
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="imageOffsetY">เลื่อนขึ้น-ลง</Label>
+                              <Input
+                                id="imageOffsetY"
+                                type="range"
+                                min="-50"
+                                max="50"
+                                step="1"
+                                value={imageEditor.offsetY}
+                                onChange={(event) =>
+                                  updateImageEditor(
+                                    "offsetY",
+                                    Number(event.target.value)
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleAdjustedImageUpload}
+                            disabled={uploadingImage}
+                            className="gap-2"
+                          >
+                            <Upload className="h-4 w-4" />
+                            {uploadingImage
+                              ? "กำลังอัปโหลด..."
+                              : "อัปโหลดรูปที่จัดแล้ว"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={resetImageEditor}
+                            disabled={uploadingImage}
+                          >
+                            ยกเลิกการจัดรูป
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     <Input
                       id="image"
                       placeholder="หรือวาง URL รูปภาพ"
@@ -617,9 +819,7 @@ export default function HRDashboard() {
                     />
                     <p className="flex items-center gap-2 text-xs text-slate-500">
                       <Upload className="h-3.5 w-3.5" />
-                      {uploadingImage
-                        ? "กำลังอัปโหลด..."
-                        : "อัปโหลดรูปได้สูงสุด 5MB หรือใส่ URL เอง"}
+                      เลือกรูปแล้วปรับซูม/ตำแหน่งก่อนอัปโหลด หรือใส่ URL เอง
                     </p>
                   </div>
                 </div>
