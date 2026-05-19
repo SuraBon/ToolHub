@@ -160,21 +160,26 @@ export function EquipmentCombobox({
 
           {filteredEquipment.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-              ไม่พบอุปกรณ์
+              ไม่พบรายการที่ตรงกับคำค้น
             </div>
           ) : (
             <div className="space-y-3">
               <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
                 {paginatedEquipment.map((eq) => {
                   const selected = value === eq.id
+                  const unavailable = eq.remaining <= 0
 
                   return (
                     <button
                       key={eq.id}
                       type="button"
-                      onClick={() => handleSelect(eq.id)}
+                      onClick={() => !unavailable && handleSelect(eq.id)}
+                      disabled={unavailable}
                       className={cn(
-                        "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                        "flex min-w-0 items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                        unavailable
+                          ? "cursor-not-allowed opacity-55"
+                          : "hover:border-blue-200 hover:bg-blue-50",
                         selected
                           ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
                           : "border-slate-200"
@@ -186,13 +191,15 @@ export function EquipmentCombobox({
                           <p className="truncate text-sm font-semibold text-slate-950">
                             {eq.name}
                           </p>
-                          {selected ? (
-                            <Check className="h-4 w-4 shrink-0 text-blue-600" />
-                          ) : null}
-                        </div>
-                        <p className="mt-1 truncate text-xs text-slate-500">
-                          คงเหลือ: {eq.remaining} {formatUnit(eq)}
-                        </p>
+                        {selected ? (
+                          <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {unavailable
+                          ? "หมดสต๊อก"
+                          : `คงเหลือ: ${eq.remaining} ${formatUnit(eq)}`}
+                      </p>
                       </div>
                     </button>
                   )

@@ -24,7 +24,7 @@ export default function FormPage() {
 
   const fetchEquipment = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/equipment")
+      const response = await fetch("/api/equipment?scope=all")
       const data = await response.json()
       setEquipment(Array.isArray(data) ? data : [])
     } catch (error) {
