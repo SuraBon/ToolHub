@@ -95,7 +95,7 @@ function StockOverviewContent() {
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูลสต๊อกได้",
+        description: "ไม่สามารถดึงข้อมูลคลังอุปกรณ์ได้",
       })
     } finally {
       setLoading(false)
@@ -175,7 +175,7 @@ function StockOverviewContent() {
                 }}
               >
                 <Settings className="h-4 w-4" />
-                จัดการสต๊อก
+                จัดการคลังอุปกรณ์
               </Button>
             </div>
           </div>
@@ -187,7 +187,7 @@ function StockOverviewContent() {
                 <div>
                   <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
                     <Package className="h-5 w-5 text-blue-600" />
-                    รายการสต๊อก
+                    รายการอุปกรณ์
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     กำลังแสดง: {stockFilterLabels[stockFilter]} · พบ {filteredEquipment.length} รายการ
@@ -215,7 +215,7 @@ function StockOverviewContent() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">ทั้งหมด</SelectItem>
-                      <SelectItem value="available">ยังมีสต๊อก</SelectItem>
+                      <SelectItem value="available">พร้อมเบิก</SelectItem>
                       <SelectItem value="out">หมดสต๊อก</SelectItem>
                     </SelectContent>
                   </Select>
@@ -253,7 +253,7 @@ function StockOverviewContent() {
                     </div>
                   ) : (
                     <p className="mt-2 text-sm text-blue-800">
-                      เลือกอุปกรณ์จากรายการด้านล่างก่อน แล้วค่อยไปกรอกข้อมูลผู้เบิก
+                      เลือกรายการอุปกรณ์ก่อนดำเนินการเบิก
                     </p>
                   )}
                 </div>
@@ -266,12 +266,12 @@ function StockOverviewContent() {
                     {selectedEquipment.length > 0 ? (
                       <Link href={requisitionHref}>
                         <ClipboardList className="h-4 w-4" />
-                        ไปกรอกฟอร์มเบิก
+                        ดำเนินการเบิก
                       </Link>
                     ) : (
                       <span className="inline-flex items-center gap-2">
                         <ClipboardList className="h-4 w-4" />
-                        ไปกรอกฟอร์มเบิก
+                        ดำเนินการเบิก
                       </span>
                     )}
                   </Button>
@@ -283,7 +283,7 @@ function StockOverviewContent() {
                     className="h-11 w-full gap-2 rounded-xl border-blue-100 bg-white lg:w-auto"
                   >
                     <Trash2 className="h-4 w-4" />
-                    ล้างรายการ
+                    ล้างรายการที่เลือก
                   </Button>
                 </div>
               </div>
@@ -313,7 +313,7 @@ function StockOverviewContent() {
                       return (
                         <div
                           key={item.id}
-                          className="grid grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                          className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)]"
                         >
                           <EquipmentImage item={item} size={64} />
                           <div className="flex min-w-0 flex-col justify-center gap-2">
@@ -324,7 +324,7 @@ function StockOverviewContent() {
                               {formatRemainingQuantity(item)}
                             </p>
                           </div>
-                          <div className="flex justify-end">
+                          <div className="col-span-2 flex justify-end sm:col-span-1">
                             {unavailable ? (
                               <Button
                                 type="button"
@@ -335,15 +335,15 @@ function StockOverviewContent() {
                                 หมดสต๊อก
                               </Button>
                             ) : selected ? (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => removeFromSelection(item.id)}
-                                  className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-                                >
-                                  <Check className="h-4 w-4" />
-                                  เลือกแล้ว
-                                </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => removeFromSelection(item.id)}
+                                className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                              >
+                                <Check className="h-4 w-4" />
+                                เลือกไว้แล้ว
+                              </Button>
                             ) : (
                               <Button
                                 type="button"
@@ -352,7 +352,7 @@ function StockOverviewContent() {
                                 className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                               >
                                 <ShoppingCart className="h-4 w-4" />
-                                เพิ่มในรายการ
+                                เพิ่มรายการ
                               </Button>
                             )}
                           </div>
@@ -383,7 +383,7 @@ function StockOverviewContent() {
             <Button asChild className="h-11 gap-2 rounded-xl">
               <Link href={requisitionHref}>
                 <ClipboardList className="h-4 w-4" />
-                ไปกรอกฟอร์ม
+                ดำเนินการเบิก
               </Link>
             </Button>
           </div>

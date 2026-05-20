@@ -572,7 +572,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const backToStockControl = (
     <>
       <ArrowLeft className="h-4 w-4" />
-      กลับหน้าสต๊อก
+      กลับไปยังคลังอุปกรณ์
     </>
   )
 
@@ -582,14 +582,14 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     try {
       await navigator.clipboard.writeText(requestFormUrl)
       toast({
-        title: "คัดลอกลิงก์แล้ว",
-        description: "นำลิงก์ฟอร์มเบิกไปใช้งานได้ทันที",
+        title: "คัดลอกลิงก์สำเร็จ",
+        description: "นำลิงก์ฟอร์มเบิกอุปกรณ์ไปใช้งานได้ทันที",
       })
     } catch (error) {
       console.error("Error copying request form URL:", error)
       toast({
         variant: "destructive",
-        title: "คัดลอกลิงก์ไม่สำเร็จ",
+        title: "ไม่สามารถคัดลอกลิงก์ได้",
         description: requestFormUrl,
       })
     }
@@ -725,15 +725,15 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
       updateDraft("image", result.url)
       toast({
-        title: "อัปโหลดรูปสำเร็จ",
-        description: "ระบบใส่ URL รูปภาพให้แล้ว",
+        title: "อัปโหลดรูปภาพสำเร็จ",
+        description: "ระบบบันทึก URL รูปภาพเรียบร้อยแล้ว",
       })
       resetImageEditor()
     } catch (error) {
       if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
-        title: "อัปโหลดไม่สำเร็จ",
+        title: "ไม่สามารถอัปโหลดรูปภาพได้",
         description:
           error instanceof Error ? error.message : "ไม่สามารถอัปโหลดรูปภาพได้",
       })
@@ -755,10 +755,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         : await apiPost<EquipmentResponse>("/api/equipment", equipmentPayload)
 
       toast({
-        title: "บันทึกสำเร็จ",
+        title: "บันทึกข้อมูลสำเร็จ",
         description: editingEquipment
           ? "แก้ไขข้อมูลอุปกรณ์แล้ว"
-          : "เพิ่มอุปกรณ์ใหม่แล้ว",
+          : "เพิ่มรายการอุปกรณ์ใหม่แล้ว",
       })
       const savedEquipment = result.equipment as Equipment | undefined
       if (savedEquipment) {
@@ -782,7 +782,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
-        title: "บันทึกไม่สำเร็จ",
+        title: "ไม่สามารถบันทึกข้อมูลได้",
         description:
           error instanceof Error ? error.message : "ไม่สามารถบันทึกอุปกรณ์ได้",
       })
@@ -857,7 +857,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       )
 
       toast({
-        title: "แก้ไขประวัติการเบิกแล้ว",
+        title: "แก้ไขประวัติการเบิกอุปกรณ์สำเร็จ",
         description: historyDraft.requisitionNumber,
       })
       setHistoryDialogOpen(false)
@@ -867,11 +867,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
-        title: "แก้ไขประวัติไม่สำเร็จ",
+        title: "ไม่สามารถแก้ไขประวัติการเบิกอุปกรณ์ได้",
         description:
           error instanceof Error
             ? error.message
-            : "ไม่สามารถแก้ไขประวัติการเบิกได้",
+            : "ไม่สามารถแก้ไขประวัติการเบิกอุปกรณ์ได้",
       })
     } finally {
       setSavingHistory(false)
@@ -890,7 +890,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       )
 
       toast({
-        title: "ยกเลิกการเบิกแล้ว",
+        title: "ยกเลิกการเบิกสำเร็จ",
         description: cancelHistoryTarget.requisitionNumber,
       })
       setCancelHistoryTarget(null)
@@ -899,7 +899,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
-        title: "ยกเลิกการเบิกไม่สำเร็จ",
+        title: "ไม่สามารถยกเลิกการเบิกได้",
         description:
           error instanceof Error
             ? error.message
@@ -920,7 +920,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       )
 
       toast({
-        title: "ลบอุปกรณ์แล้ว",
+        title: "ลบข้อมูลอุปกรณ์สำเร็จ",
         description: deleteTarget.name,
       })
       setEquipment((current) =>
@@ -932,7 +932,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
-        title: "ลบไม่สำเร็จ",
+        title: "ไม่สามารถลบข้อมูลได้",
         description:
           error instanceof Error ? error.message : "ไม่สามารถลบอุปกรณ์ได้",
       })
@@ -954,7 +954,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 กำลังตรวจสอบสิทธิ์
               </h1>
               <p className="mt-2 text-sm text-slate-600">
-                ระบบกำลังตรวจสอบสถานะการเข้าสู่ระบบจัดการสต๊อก
+                ระบบกำลังตรวจสอบสถานะการเข้าสู่ระบบจัดการคลังอุปกรณ์
               </p>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
@@ -977,16 +977,16 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               <ShieldCheck className="h-8 w-8 text-white" />
             </div>
             <div>
-              <CardTitle className="text-2xl">เข้าสู่ระบบจัดการสต๊อก</CardTitle>
+              <CardTitle className="text-2xl">เข้าสู่ระบบจัดการคลังอุปกรณ์</CardTitle>
               <CardDescription className="mt-2">
-                สำหรับเจ้าหน้าที่ที่ต้องเพิ่ม แก้ไข และตรวจสอบประวัติการเบิก
+                สำหรับเจ้าหน้าที่ที่ต้องเพิ่ม แก้ไข และตรวจสอบประวัติการเบิกอุปกรณ์
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>กรุณาใช้รหัสผ่านของผู้ดูแลระบบก่อนแก้ไขข้อมูลสต๊อก</p>
+              <p>กรุณาใช้รหัสผ่านผู้ดูแลระบบก่อนแก้ไขข้อมูลคลังอุปกรณ์</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="hrPassword">รหัสผ่าน</Label>
@@ -1005,7 +1005,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             </div>
             <Button onClick={handleLogin} className="h-12 w-full gap-2 rounded-xl text-base">
               <ShieldCheck className="h-4 w-4" />
-              เข้าสู่ระบบจัดการ
+              เข้าสู่ระบบจัดการคลังอุปกรณ์
             </Button>
             {onBackToStock ? (
               <Button
@@ -1039,10 +1039,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              จัดการสต๊อก
+              จัดการคลังอุปกรณ์
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิก และตรวจสถานะระบบ
+              เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิกอุปกรณ์ และตรวจสถานะระบบ
             </p>
           </div>
           <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
@@ -1087,7 +1087,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <FileText className="h-4 w-4" />
-            ประวัติการเบิก
+            ประวัติการเบิกอุปกรณ์
           </Button>
           <Button
             variant={activeTab === "monitoring" ? "default" : "outline"}
@@ -1104,7 +1104,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <QrCode className="h-4 w-4" />
-            QR ฟอร์มเบิก
+            QR ฟอร์มเบิกอุปกรณ์
           </Button>
         </div>
 
@@ -1120,7 +1120,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 </div>
                 <Button onClick={openAddDialog} className="h-11 w-full gap-2 rounded-xl sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  เพิ่มอุปกรณ์
+                  เพิ่มรายการอุปกรณ์
                 </Button>
               </div>
             </CardHeader>
@@ -1131,7 +1131,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   <Input
                     value={managementSearch}
                     onChange={(event) => setManagementSearch(event.target.value)}
-                    placeholder="ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก"
+                    placeholder="ค้นหารหัส ชื่อ หน่วย หรือสถานะ"
                     className="h-11 rounded-xl border-slate-200 bg-white pl-10"
                   />
                 </div>
@@ -1177,7 +1177,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                           ชื่ออุปกรณ์
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-center">
-                          สต๊อกรวม
+                          จำนวนรวม
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-center">
                           เบิกไปแล้ว
@@ -1276,7 +1276,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <CardHeader>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <CardTitle className="text-xl">ประวัติการเบิก</CardTitle>
+                  <CardTitle className="text-xl">ประวัติการเบิกอุปกรณ์</CardTitle>
                   <CardDescription>
                     ดูและค้นหาประวัติการเบิกอุปกรณ์ทั้งหมด
                   </CardDescription>
@@ -1299,11 +1299,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 </div>
               ) : history.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
-                  ยังไม่มีประวัติการเบิก
+                  ยังไม่มีประวัติการเบิกอุปกรณ์
                 </div>
               ) : filteredHistory.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
-                  ไม่พบประวัติการเบิกที่ตรงกับคำค้น
+                  ไม่พบประวัติการเบิกอุปกรณ์ที่ตรงกับคำค้น
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1354,7 +1354,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                               variant="ghost"
                               size="icon"
                               onClick={() => openHistoryDialog(item)}
-                              aria-label="แก้ไขประวัติการเบิก"
+                              aria-label="แก้ไขประวัติการเบิกอุปกรณ์"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1457,7 +1457,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs font-medium text-slate-500">ประวัติการเบิก</p>
+                      <p className="text-xs font-medium text-slate-500">ประวัติการเบิกอุปกรณ์</p>
                       <p className="mt-2 text-lg font-semibold">
                         {systemStatus.history?.total ?? "-"}
                       </p>
@@ -1523,10 +1523,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-blue-600" />
-                QR ฟอร์มเบิก
+                QR ฟอร์มเบิกอุปกรณ์
               </DialogTitle>
               <DialogDescription>
-                สแกนเพื่อเปิดฟอร์มเบิก หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
+                สแกนเพื่อเปิดฟอร์มเบิกอุปกรณ์ หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
               </DialogDescription>
             </DialogHeader>
 
@@ -1573,7 +1573,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 {requestFormQr ? (
                   <Image
                     src={requestFormQr}
-                    alt="QR สำหรับเปิดฟอร์มเบิก"
+                    alt="QR สำหรับเปิดฟอร์มเบิกอุปกรณ์"
                     width={196}
                     height={196}
                     unoptimized
@@ -1598,9 +1598,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         >
           <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
-              <DialogTitle>แก้ไขประวัติการเบิก</DialogTitle>
+              <DialogTitle>แก้ไขประวัติการเบิกอุปกรณ์</DialogTitle>
               <DialogDescription>
-                แก้ไขรายการที่เบิกผิด ระบบจะปรับยอดเบิกไปแล้วและยอดคงเหลือให้ตามข้อมูลใหม่
+                แก้ไขรายการที่เบิกผิด ระบบจะปรับจำนวนที่เบิกไปแล้วและยอดคงเหลือให้ตามข้อมูลใหม่
               </DialogDescription>
             </DialogHeader>
 
@@ -1690,7 +1690,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 disabled={savingHistory}
                 className="w-full sm:w-auto"
               >
-                {savingHistory ? "กำลังบันทึก..." : "บันทึกประวัติ"}
+                {savingHistory ? "กำลังบันทึก..." : "บันทึกประวัติการเบิก"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1700,10 +1700,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>
-                {editingEquipment ? "แก้ไขอุปกรณ์" : "เพิ่มอุปกรณ์"}
+                {editingEquipment ? "แก้ไขข้อมูลอุปกรณ์" : "เพิ่มรายการอุปกรณ์"}
               </DialogTitle>
               <DialogDescription>
-                กรอกข้อมูลอุปกรณ์ ระบบจะคำนวณสต๊อกรวมและยอดคงเหลือให้อัตโนมัติ
+                กรอกข้อมูลอุปกรณ์ ระบบจะคำนวณจำนวนรวมและยอดคงเหลือให้อัตโนมัติ
               </DialogDescription>
             </DialogHeader>
 
@@ -1903,7 +1903,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stockMainUnit">
-                  สต๊อกหน่วยใหญ่
+                  จำนวนหน่วยใหญ่
                   {equipmentDraft.mainUnit ? ` (${equipmentDraft.mainUnit})` : ""}
                 </Label>
                 <Input
@@ -1922,7 +1922,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stockBaseUnit">
-                  สต๊อกหน่วยย่อย
+                  จำนวนหน่วยย่อย
                   {equipmentDraft.baseUnit ? ` (${equipmentDraft.baseUnit})` : ""}
                 </Label>
                 <Input
@@ -1936,7 +1936,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalStock">สต๊อกรวม</Label>
+                <Label htmlFor="totalStock">จำนวนรวม</Label>
                 <Input
                   id="totalStock"
                   type="number"
@@ -1973,7 +1973,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 disabled={savingEquipment}
                 className="w-full sm:w-auto"
               >
-                {savingEquipment ? "กำลังบันทึก..." : "บันทึกอุปกรณ์"}
+                {savingEquipment ? "กำลังบันทึก..." : "บันทึกข้อมูลอุปกรณ์"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1990,7 +1990,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 ยืนยันการยกเลิกการเบิก
               </DialogTitle>
               <DialogDescription>
-                รายการนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าสต๊อก
+                รายการนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์
               </DialogDescription>
             </DialogHeader>
 
@@ -2013,7 +2013,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 disabled={cancelingHistory}
                 className="w-full sm:w-auto"
               >
-                ไม่ยกเลิก
+                ไม่ดำเนินการ
               </Button>
               <Button
                 variant="destructive"
@@ -2021,7 +2021,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 disabled={cancelingHistory}
                 className="w-full sm:w-auto"
               >
-                {cancelingHistory ? "กำลังยกเลิก..." : "ยืนยันยกเลิก"}
+                {cancelingHistory ? "กำลังยกเลิก..." : "ยืนยันการยกเลิก"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2035,10 +2035,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
-                ยืนยันการลบอุปกรณ์
+                ยืนยันการลบข้อมูลอุปกรณ์
               </DialogTitle>
               <DialogDescription>
-                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าภาพรวมสต๊อกหรือฟอร์มเบิก
+                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าคลังอุปกรณ์หรือฟอร์มเบิกอุปกรณ์
               </DialogDescription>
             </DialogHeader>
 
@@ -2064,7 +2064,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 disabled={deletingEquipment}
                 className="w-full sm:w-auto"
               >
-                {deletingEquipment ? "กำลังลบ..." : "ลบอุปกรณ์"}
+                {deletingEquipment ? "กำลังลบ..." : "ลบข้อมูลอุปกรณ์"}
               </Button>
             </DialogFooter>
           </DialogContent>

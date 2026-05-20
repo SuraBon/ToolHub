@@ -3,7 +3,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "คลังอุปกรณ์",
-  description: "ระบบตรวจสต๊อก เบิกอุปกรณ์ และจัดการคลัง",
+  description: "ระบบตรวจสอบคลังอุปกรณ์และบันทึกคำขอเบิกอุปกรณ์",
 }
 
 export default function RootLayout({

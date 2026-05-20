@@ -68,7 +68,7 @@ function FormPageContent() {
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูลอุปกรณ์ได้",
+        description: "ไม่สามารถดึงข้อมูลคลังอุปกรณ์ได้",
       })
     } finally {
       setLoading(false)
@@ -85,13 +85,13 @@ function FormPageContent() {
       const result = await apiPost<RequisitionResponse>("/api/requisition", data)
 
       toast({
-        title: "ส่งคำขอเบิกสำเร็จ",
+        title: "ส่งคำขอเบิกอุปกรณ์สำเร็จ",
         description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
       })
       await fetchEquipment()
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกได้"
+        error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้"
 
       if (
         errorMessage.includes("สต๊อก") ||
@@ -120,10 +120,10 @@ function FormPageContent() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-rose-700">
               <AlertTriangle className="h-5 w-5" />
-              สต๊อกไม่เพียงพอ
+              จำนวนคงเหลือไม่เพียงพอ
             </DialogTitle>
             <DialogDescription>
-              จำนวนที่ต้องการเบิกมากกว่ายอดคงเหลือในคลัง
+              จำนวนที่ต้องการเบิกมากกว่าจำนวนคงเหลือในคลังอุปกรณ์
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-900">
@@ -156,7 +156,7 @@ function FormPageContent() {
               >
                 <Link href="/">
                   <ArrowLeft className="h-4 w-4" />
-                  กลับหน้าคลัง
+                  กลับไปยังคลังอุปกรณ์
                 </Link>
               </Button>
             </div>

@@ -4,7 +4,7 @@ export type StockFilter = "all" | "available" | "out"
 
 export const stockFilterLabels: Record<StockFilter, string> = {
   all: "ทั้งหมด",
-  available: "ยังมีสต๊อก",
+  available: "พร้อมเบิก",
   out: "หมดสต๊อก",
 }
 

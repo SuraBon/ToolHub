@@ -113,7 +113,7 @@ export function EquipmentCombobox({
           <DialogHeader className="border-b border-slate-100 px-4 py-4 pr-12 sm:px-5">
             <DialogTitle>เลือกอุปกรณ์</DialogTitle>
             <DialogDescription>
-              ค้นหาจากรหัสหรือชื่อ แล้วเลือกอุปกรณ์ที่ต้องการเบิก
+              ค้นหารายการอุปกรณ์และเลือกรายการที่ต้องการเบิก
             </DialogDescription>
           </DialogHeader>
 

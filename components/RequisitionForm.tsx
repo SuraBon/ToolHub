@@ -83,7 +83,7 @@ export function RequisitionForm({
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, prepend, remove } = useFieldArray({
     control: form.control,
     name: "items",
   })
@@ -101,7 +101,7 @@ export function RequisitionForm({
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งคำขอเบิกได้ กรุณาลองใหม่",
+        description: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้ กรุณาตรวจสอบข้อมูลและลองอีกครั้ง",
       })
     }
   }
@@ -141,15 +141,15 @@ export function RequisitionForm({
       toast({
         variant: "destructive",
         title: "ไม่พบรายการที่พร้อมเบิก",
-        description: "บางรายการไม่พร้อมให้เบิกและถูกข้าม",
+        description: "ระบบข้ามรายการที่ไม่พร้อมให้เบิกโดยอัตโนมัติ",
       })
       return
     }
 
     if (validEquipment.length < uniqueIds.length) {
       toast({
-        title: "ข้ามบางรายการ",
-        description: "บางรายการไม่พร้อมให้เบิกและถูกข้าม",
+        title: "ตรวจพบรายการที่ไม่พร้อมเบิก",
+        description: "ระบบข้ามรายการที่ไม่พร้อมให้เบิกโดยอัตโนมัติ",
       })
     }
 
@@ -210,9 +210,9 @@ export function RequisitionForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-10 w-full gap-2 rounded-xl sm:w-auto"
+                className="h-11 w-full gap-2 rounded-xl sm:w-auto"
                 onClick={() =>
-                  append({
+                  prepend({
                     equipmentId: "",
                     equipmentName: "",
                     equipmentImage: "",
@@ -222,7 +222,7 @@ export function RequisitionForm({
                 }
               >
                 <Plus className="h-4 w-4" />
-                เพิ่มอุปกรณ์
+                เพิ่มรายการอุปกรณ์
               </Button>
             </motion.div>
           </div>
@@ -237,7 +237,7 @@ export function RequisitionForm({
               return (
                 <motion.div
                   key={field.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: -16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
@@ -333,7 +333,7 @@ export function RequisitionForm({
                           variant="ghost"
                           size="icon"
                           onClick={() => remove(index)}
-                          className="h-10 w-10 shrink-0 rounded-xl hover:bg-red-50 hover:text-red-600"
+                          className="h-11 w-11 shrink-0 rounded-xl hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -352,7 +352,7 @@ export function RequisitionForm({
             className="h-12 w-full text-base"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "กำลังส่งคำขอ..." : "ส่งคำขอเบิก"}
+            {isSubmitting ? "กำลังส่งคำขอ..." : "ส่งคำขอเบิกอุปกรณ์"}
           </Button>
         </motion.div>
       </form>
