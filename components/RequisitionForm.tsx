@@ -156,13 +156,14 @@ export function RequisitionForm({
         </div>
 
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold">รายการอุปกรณ์</h3>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
+                className="h-10 w-full gap-2 rounded-xl sm:w-auto"
                 onClick={() =>
                   append({
                     equipmentId: "",
@@ -173,7 +174,7 @@ export function RequisitionForm({
                   })
                 }
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 เพิ่มอุปกรณ์
               </Button>
             </motion.div>
@@ -275,13 +276,17 @@ export function RequisitionForm({
                       )}
                     </div>
                     {fields.length > 1 && (
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="self-end sm:self-start"
+                      >
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => remove(index)}
-                          className="shrink-0 hover:bg-red-50 hover:text-red-600"
+                          className="h-10 w-10 shrink-0 rounded-xl hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

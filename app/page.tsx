@@ -156,10 +156,10 @@ export default function StockOverviewPage() {
                 ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 lg:flex">
               <Button
                 asChild
-                className="h-12 gap-2 rounded-2xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-300"
+                className="h-12 w-full gap-2 rounded-2xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-300"
               >
                 <Link href="/form">
                   <ClipboardList className="h-4 w-4" />
@@ -169,7 +169,7 @@ export default function StockOverviewPage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-12 gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="h-12 w-full gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 onClick={() => {
                   setShowManagement(true)
                   router.replace("/?view=management")

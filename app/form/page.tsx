@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import * as React from "react"
-import { Package } from "lucide-react"
+import { AlertTriangle, Package } from "lucide-react"
 
 import { RequisitionForm } from "@/components/RequisitionForm"
 import {
@@ -11,6 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
@@ -26,6 +35,7 @@ export default function FormPage() {
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
+  const [stockError, setStockError] = React.useState("")
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -60,12 +70,22 @@ export default function FormPage() {
       })
       await fetchEquipment()
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกได้"
+
+      if (
+        errorMessage.includes("สต๊อก") ||
+        errorMessage.includes("ไม่เพียงพอ")
+      ) {
+        setStockError(errorMessage)
+        return
+      }
+
       console.error("Error submitting requisition:", error)
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description:
-          error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกได้",
+        description: errorMessage,
       })
     } finally {
       setSubmitting(false)
@@ -75,6 +95,27 @@ export default function FormPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <Toaster />
+      <Dialog open={Boolean(stockError)} onOpenChange={(open) => !open && setStockError("")}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700">
+              <AlertTriangle className="h-5 w-5" />
+              สต๊อกไม่เพียงพอ
+            </DialogTitle>
+            <DialogDescription>
+              จำนวนที่ต้องการเบิกมากกว่ายอดคงเหลือในคลัง
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-900">
+            {stockError}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={() => setStockError("")} className="w-full sm:w-auto">
+              ตกลง
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">

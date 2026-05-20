@@ -95,3 +95,18 @@ export type RequisitionHistoryPayload = z.infer<
 export function validateRequisitionHistoryPayload(input: unknown) {
   return RequisitionHistoryPayloadSchema.parse(input)
 }
+
+export const RequisitionHistoryCancelPayloadSchema = z.object({
+  rowNumber: z.coerce
+    .number()
+    .int("แถวประวัติต้องเป็นตัวเลขจำนวนเต็ม")
+    .min(2, "แถวประวัติไม่ถูกต้อง"),
+})
+
+export type RequisitionHistoryCancelPayload = z.infer<
+  typeof RequisitionHistoryCancelPayloadSchema
+>
+
+export function validateRequisitionHistoryCancelPayload(input: unknown) {
+  return RequisitionHistoryCancelPayloadSchema.parse(input)
+}

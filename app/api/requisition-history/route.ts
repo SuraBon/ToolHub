@@ -6,11 +6,15 @@ import {
 } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import {
+  cancelRequisitionHistory,
   getRequisitionHistoryData,
   updateRequisitionHistory,
 } from "@/lib/google-sheets"
 import { requireHrSession } from "@/lib/hr-auth"
-import { validateRequisitionHistoryPayload } from "@/lib/validation"
+import {
+  validateRequisitionHistoryCancelPayload,
+  validateRequisitionHistoryPayload,
+} from "@/lib/validation"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -49,6 +53,33 @@ export async function PUT(request: Request) {
     console.error("Error updating requisition history:", error)
     return jsonError(
       formatApiErrorMessage(error, "ไม่สามารถแก้ไขประวัติการเบิกได้"),
+      400
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const unauthorized = await requireHrSession()
+    if (unauthorized) return unauthorized
+
+    const { searchParams } = new URL(request.url)
+    const payload = validateRequisitionHistoryCancelPayload({
+      rowNumber: searchParams.get("rowNumber"),
+    })
+    const history = await cancelRequisitionHistory(payload)
+
+    await logAdminEvent({
+      action: "cancel_requisition_history",
+      detail: `ยกเลิกการเบิก ${history.requisitionNumber}`,
+      equipmentName: history.equipmentName,
+    })
+
+    return jsonSuccess({ history })
+  } catch (error) {
+    console.error("Error canceling requisition history:", error)
+    return jsonError(
+      formatApiErrorMessage(error, "ไม่สามารถยกเลิกการเบิกได้"),
       400
     )
   }

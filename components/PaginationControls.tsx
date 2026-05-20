@@ -32,14 +32,14 @@ export function PaginationControls({
       <span>
         แสดง {startItem}-{endItem} จาก {totalItems} รายการ
       </span>
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          className="gap-1"
+          className="w-full gap-1 sm:w-auto"
         >
           <ChevronLeft className="h-4 w-4" />
           ก่อนหน้า
@@ -53,7 +53,7 @@ export function PaginationControls({
           size="sm"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="gap-1"
+          className="w-full gap-1 sm:w-auto"
         >
           ถัดไป
           <ChevronRight className="h-4 w-4" />

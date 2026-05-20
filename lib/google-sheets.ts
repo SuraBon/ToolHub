@@ -17,7 +17,10 @@ import {
 import { requireEnv } from "@/lib/env"
 import { toBaseUnit } from "@/lib/unit-conversion"
 import { Equipment } from "@/types"
-import type { RequisitionHistoryPayload } from "@/lib/validation"
+import type {
+  RequisitionHistoryCancelPayload,
+  RequisitionHistoryPayload,
+} from "@/lib/validation"
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -513,6 +516,97 @@ export async function updateRequisitionHistory(
         ? nextEquipment.mainUnit
         : nextEquipment.baseUnit,
   }
+}
+
+export async function cancelRequisitionHistory(
+  input: RequisitionHistoryCancelPayload
+) {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
+  const [history, equipmentData] = await Promise.all([
+    getRequisitionHistoryData(),
+    getAllEquipmentData(),
+  ])
+  const existingHistory = history.find((row) => row.rowNumber === input.rowNumber)
+
+  if (!existingHistory) {
+    throw new Error("ไม่พบประวัติการเบิกที่ต้องการยกเลิก")
+  }
+
+  const equipment = getHistoryEquipmentMatch(
+    equipmentData,
+    existingHistory.equipmentName
+  )
+
+  if (!equipment) {
+    throw new Error(
+      `ไม่พบอุปกรณ์เดิมในสต๊อก: ${existingHistory.equipmentName}`
+    )
+  }
+
+  const wasMainUnit = Boolean(
+    equipment.mainUnit && existingHistory.unit.trim() === equipment.mainUnit.trim()
+  )
+  const returnedBaseUnits = toBaseUnit(
+    existingHistory.amount,
+    wasMainUnit,
+    equipment.ratio
+  )
+  const equipmentIndex = equipmentData.findIndex((item) => item.id === equipment.id)
+  const nextUsed = equipment.used - returnedBaseUnits
+  const nextRemaining = equipment.remaining + returnedBaseUnits
+
+  if (equipmentIndex === -1) {
+    throw new Error(`ไม่พบอุปกรณ์รหัส ${equipment.id}`)
+  }
+
+  if (nextUsed < 0) {
+    throw new Error(
+      `ยอดเบิกไปแล้วของ ${equipment.name} น้อยกว่าจำนวนที่ต้องคืน`
+    )
+  }
+
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties",
+  })
+  const historySheet = metadata.data.sheets?.find(
+    (sheet) => sheet.properties?.title === HISTORY_SHEET_NAME
+  )
+  const sheetId = historySheet?.properties?.sheetId
+
+  if (sheetId === undefined || sheetId === null) {
+    throw new Error("ไม่พบชีตประวัติการเบิก")
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: stockUsageRange(equipmentIndex + 2),
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[nextUsed, nextRemaining]],
+    },
+  })
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex: input.rowNumber - 1,
+              endIndex: input.rowNumber,
+            },
+          },
+        },
+      ],
+    },
+  })
+
+  return existingHistory
 }
 
 export async function updateStock(updates: Array<{ range: string; values: unknown[][] }>) {
