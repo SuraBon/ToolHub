@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Image from "next/image"
 import { AnimatePresence, motion } from "framer-motion"
 import { Package, Plus, Trash2 } from "lucide-react"
@@ -27,6 +28,7 @@ import type {
 
 interface RequisitionFormProps {
   equipment: Equipment[]
+  initialEquipmentIds?: string[]
   onSubmit: (data: RequisitionFormValues) => Promise<void>
   isSubmitting?: boolean
 }
@@ -58,10 +60,12 @@ function SelectedEquipmentImage({
 
 export function RequisitionForm({
   equipment,
+  initialEquipmentIds = [],
   onSubmit,
   isSubmitting = false,
 }: RequisitionFormProps) {
   const { toast } = useToast()
+  const appliedInitialEquipmentRef = React.useRef(false)
   const form = useForm<RequisitionFormValues>({
     resolver: zodResolver(RequisitionFormSchema),
     defaultValues: {
@@ -118,6 +122,49 @@ export function RequisitionForm({
     form.setValue(`items.${index}.equipmentImage`, selectedEquipment.image || "")
     form.setValue(`items.${index}.isMainUnit`, false)
   }
+
+  React.useEffect(() => {
+    if (appliedInitialEquipmentRef.current || initialEquipmentIds.length === 0) {
+      return
+    }
+
+    appliedInitialEquipmentRef.current = true
+
+    const uniqueIds = Array.from(new Set(initialEquipmentIds))
+    const validEquipment = uniqueIds
+      .map((equipmentId) => equipment.find((item) => item.id === equipmentId))
+      .filter(
+        (item): item is Equipment => Boolean(item && item.remaining > 0)
+      )
+
+    if (validEquipment.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "ไม่พบรายการที่พร้อมเบิก",
+        description: "บางรายการไม่พร้อมให้เบิกและถูกข้าม",
+      })
+      return
+    }
+
+    if (validEquipment.length < uniqueIds.length) {
+      toast({
+        title: "ข้ามบางรายการ",
+        description: "บางรายการไม่พร้อมให้เบิกและถูกข้าม",
+      })
+    }
+
+    const currentValues = form.getValues()
+    form.reset({
+      ...currentValues,
+      items: validEquipment.map((item) => ({
+        equipmentId: item.id,
+        equipmentName: item.name,
+        equipmentImage: item.image || "",
+        amount: 1,
+        isMainUnit: false,
+      })),
+    })
+  }, [equipment, form, initialEquipmentIds, toast])
 
   return (
     <Form {...form}>

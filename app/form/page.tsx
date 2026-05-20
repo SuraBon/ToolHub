@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { AlertTriangle, ArrowLeft, Package } from "lucide-react"
 
 import { RequisitionForm } from "@/components/RequisitionForm"
@@ -32,12 +33,30 @@ type RequisitionResponse = {
   requisitionNumber: string
 }
 
-export default function FormPage() {
+function getInitialEquipmentIds(value: string | null) {
+  if (!value) return []
+
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  )
+}
+
+function FormPageContent() {
+  const searchParams = useSearchParams()
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
   const [stockError, setStockError] = React.useState("")
   const { toast } = useToast()
+  const initialEquipmentIds = React.useMemo(
+    () => getInitialEquipmentIds(searchParams.get("equipmentIds")),
+    [searchParams]
+  )
 
   const fetchEquipment = React.useCallback(async () => {
     try {
@@ -152,6 +171,7 @@ export default function FormPage() {
             ) : (
               <RequisitionForm
                 equipment={equipment}
+                initialEquipmentIds={initialEquipmentIds}
                 onSubmit={handleSubmit}
                 isSubmitting={submitting}
               />
@@ -160,5 +180,31 @@ export default function FormPage() {
         </Card>
       </div>
     </main>
+  )
+}
+
+export default function FormPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100">
+                <Skeleton className="h-8 w-56" />
+                <Skeleton className="mt-2 h-4 w-full max-w-md" />
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      }
+    >
+      <FormPageContent />
+    </React.Suspense>
   )
 }

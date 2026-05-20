@@ -1,13 +1,10 @@
 import type { Equipment } from "@/types"
 
-export const LOW_STOCK_THRESHOLD = 10
-
-export type StockFilter = "all" | "available" | "low" | "out"
+export type StockFilter = "all" | "available" | "out"
 
 export const stockFilterLabels: Record<StockFilter, string> = {
   all: "ทั้งหมด",
   available: "ยังมีสต๊อก",
-  low: "ใกล้หมด",
   out: "หมดสต๊อก",
 }
 
@@ -65,9 +62,6 @@ export function equipmentMatchesFilter(
   filter: StockFilter
 ) {
   if (filter === "available") return equipment.remaining > 0
-  if (filter === "low") {
-    return equipment.remaining > 0 && equipment.remaining <= LOW_STOCK_THRESHOLD
-  }
   if (filter === "out") return equipment.remaining <= 0
   return true
 }
@@ -90,13 +84,6 @@ export function getStockStatus(equipment: Equipment) {
     return {
       label: "หมดสต๊อก",
       className: "bg-rose-50 text-rose-700 ring-rose-100",
-    }
-  }
-
-  if (equipment.remaining <= LOW_STOCK_THRESHOLD) {
-    return {
-      label: "ใกล้หมด",
-      className: "bg-amber-50 text-amber-700 ring-amber-100",
     }
   }
 

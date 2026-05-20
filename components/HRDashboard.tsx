@@ -123,7 +123,6 @@ type SystemStatus = {
   inventory: {
     total: number
     available: number
-    lowStock: number
     outOfStock: number
   } | null
   history: {
@@ -1150,7 +1149,6 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                     <SelectItem value="available">
                       {stockFilterLabels.available}
                     </SelectItem>
-                    <SelectItem value="low">{stockFilterLabels.low}</SelectItem>
                     <SelectItem value="out">{stockFilterLabels.out}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1467,17 +1465,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   </section>
 
                   {systemStatus.inventory ? (
-                    <section className="grid gap-3 md:grid-cols-3">
+                    <section className="grid gap-3 md:grid-cols-2">
                       <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                         <p className="text-xs font-medium text-emerald-700">พร้อมเบิก</p>
                         <p className="mt-2 text-2xl font-bold text-emerald-800">
                           {systemStatus.inventory.available}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-                        <p className="text-xs font-medium text-amber-700">ใกล้หมด</p>
-                        <p className="mt-2 text-2xl font-bold text-amber-800">
-                          {systemStatus.inventory.lowStock}
                         </p>
                       </div>
                       <div className="rounded-xl border border-red-100 bg-red-50 p-4">

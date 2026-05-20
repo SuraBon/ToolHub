@@ -2,7 +2,6 @@ import { jsonData, jsonError } from "@/lib/api-response"
 import { getEnvChecks, getMissingRequiredEnv, hasEnv } from "@/lib/env"
 import { getAllEquipmentData, getRequisitionHistoryData } from "@/lib/google-sheets"
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
-import { LOW_STOCK_THRESHOLD } from "@/lib/equipment-utils"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -40,9 +39,6 @@ export async function GET() {
       getRequisitionHistoryData(),
     ])
     const outOfStock = equipment.filter((item) => item.remaining <= 0).length
-    const lowStock = equipment.filter(
-      (item) => item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
-    ).length
 
     return refreshHrSessionCookie(jsonData({
       ...baseStatus,
@@ -52,7 +48,6 @@ export async function GET() {
       inventory: {
         total: equipment.length,
         available: equipment.length - outOfStock,
-        lowStock,
         outOfStock,
       },
       history: {
