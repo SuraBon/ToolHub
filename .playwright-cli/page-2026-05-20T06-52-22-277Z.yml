@@ -1,0 +1,34 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - heading "คลังอุปกรณ์" [level=1] [ref=e7]
+          - paragraph [ref=e8]: ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
+        - generic [ref=e9]:
+          - link "เปิดฟอร์มเบิก" [ref=e10] [cursor=pointer]:
+            - /url: /form
+            - img [ref=e11]
+            - text: เปิดฟอร์มเบิก
+            - img [ref=e14]
+          - button "จัดการสต๊อก" [ref=e16] [cursor=pointer]:
+            - img [ref=e17]
+            - text: จัดการสต๊อก
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - heading "รายการสต๊อก" [level=3] [ref=e25]:
+            - img [ref=e26]
+            - text: รายการสต๊อก
+          - paragraph [ref=e30]: "กำลังแสดง: ทั้งหมด · พบ 0 รายการ"
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - img
+            - textbox "ค้นหารหัส ชื่อ หน่วย หรือสถานะ" [ref=e33]
+          - combobox [ref=e34] [cursor=pointer]:
+            - img [ref=e36]
+            - img [ref=e37]
+          - combobox [ref=e39]
+  - button "Open Next.js Dev Tools" [ref=e50] [cursor=pointer]:
+    - img [ref=e51]

@@ -1,0 +1,290 @@
+- generic:
+  - main:
+    - list
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading [level=1]: จัดการสต๊อก
+            - paragraph: เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิก และตรวจสถานะระบบ
+            - paragraph:
+              - img
+              - generic: ต้องเข้าสู่ระบบก่อนแก้ไขข้อมูลสต๊อก
+          - generic:
+            - button:
+              - img
+              - text: กลับหน้าสต๊อก
+            - button:
+              - img
+              - text: ออกจากระบบ
+      - generic:
+        - button:
+          - img
+          - text: อุปกรณ์
+        - button:
+          - img
+          - text: ประวัติการเบิก
+        - button:
+          - img
+          - text: สถานะระบบ
+        - button:
+          - img
+          - text: QR ฟอร์มเบิก
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=3]: รายการอุปกรณ์
+              - paragraph: จัดการรายการอุปกรณ์ทั้งหมด รวมถึงรายการที่หมดสต๊อก
+            - button:
+              - img
+              - text: เพิ่มอุปกรณ์
+        - generic:
+          - generic:
+            - generic:
+              - img
+              - textbox:
+                - /placeholder: ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก
+            - combobox [expanded]:
+              - generic: ทั้งหมด
+              - img
+          - generic:
+            - generic:
+              - generic:
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: รูปภาพ
+                      - columnheader: รหัส
+                      - columnheader: ชื่ออุปกรณ์
+                      - columnheader: สต๊อกรวม
+                      - columnheader: เบิกไปแล้ว
+                      - columnheader: คงเหลือ
+                      - columnheader: หน่วยย่อย
+                      - columnheader: หน่วยใหญ่
+                      - columnheader: อัตราส่วน
+                      - columnheader: จัดการ
+                  - rowgroup:
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ001
+                      - cell: คลิปดำ 19 มม.
+                      - cell: "24"
+                      - cell: "0"
+                      - cell: "24"
+                      - cell: กล่อง
+                      - cell: แพ็ค
+                      - cell: "3"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ002
+                      - cell: คลิปดำ 25 มม.
+                      - cell: "7"
+                      - cell: "0"
+                      - cell: "7"
+                      - cell: กล่อง
+                      - cell: "-"
+                      - cell: "-"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ003
+                      - cell: คลิปดำ 51 มม.
+                      - cell: "120"
+                      - cell: "0"
+                      - cell: "120"
+                      - cell: ตัว
+                      - cell: กล่อง
+                      - cell: "12"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ004
+                      - cell: คลิปลวด 33mm (กล่อง)
+                      - cell: "54"
+                      - cell: "0"
+                      - cell: "54"
+                      - cell: กล่อง
+                      - cell: แพ็ค
+                      - cell: "10"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ005
+                      - cell: ปากกาแดง
+                      - cell: "15"
+                      - cell: "0"
+                      - cell: "15"
+                      - cell: ด้าม
+                      - cell: "-"
+                      - cell: "-"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ006
+                      - cell: ปากกาน้ำเงิน
+                      - cell: "18"
+                      - cell: "0"
+                      - cell: "18"
+                      - cell: ด้าม
+                      - cell: "-"
+                      - cell: "-"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ007
+                      - cell: กาวแท่ง
+                      - cell: "3"
+                      - cell: "0"
+                      - cell: "3"
+                      - cell: แท่ง
+                      - cell: แพ็ค
+                      - cell: "6"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ008
+                      - cell: ซองสีน้ำตาล
+                      - cell: "150"
+                      - cell: "0"
+                      - cell: "150"
+                      - cell: ซอง
+                      - cell: แพ็ค
+                      - cell: "50"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ009
+                      - cell: ซองสีน้ำตาลขยายข้าง
+                      - cell: "0"
+                      - cell: "0"
+                      - cell: "0"
+                      - cell: ซอง
+                      - cell: แพ็ค
+                      - cell: "50"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+                    - row:
+                      - cell:
+                        - generic:
+                          - img
+                      - cell: EQ010
+                      - cell: ซองขาว
+                      - cell: "20"
+                      - cell: "0"
+                      - cell: "20"
+                      - cell: ซอง
+                      - cell: แพ็ค
+                      - cell: "250"
+                      - cell:
+                        - generic:
+                          - button:
+                            - img
+                            - generic: แก้ไข
+                          - button:
+                            - img
+                            - generic: ลบ
+            - generic:
+              - generic: แสดง 1-10 จาก 54 รายการ
+              - generic:
+                - button [disabled]:
+                  - img
+                  - text: ก่อนหน้า
+                - generic: 1/6
+                - button:
+                  - text: ถัดไป
+                  - img
+  - button "Open Next.js Dev Tools" [ref=e50] [cursor=pointer]:
+    - img [ref=e51]
+  - alert
+  - listbox [ref=e387]:
+    - option "ทั้งหมด" [active] [selected] [ref=e388]:
+      - img [ref=e391]
+      - generic [ref=e393]: ทั้งหมด
+    - option "ยังมีสต๊อก" [ref=e394]:
+      - generic [ref=e396]: ยังมีสต๊อก
+    - option "ใกล้หมด" [ref=e397]:
+      - generic [ref=e399]: ใกล้หมด
+    - option "หมดสต๊อก" [ref=e400]:
+      - generic [ref=e402]: หมดสต๊อก

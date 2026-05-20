@@ -44,6 +44,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -54,7 +61,13 @@ import {
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/client-api"
-import { equipmentMatchesSearch, sortEquipmentById } from "@/lib/equipment-utils"
+import {
+  type StockFilter,
+  equipmentMatchesFilter,
+  equipmentMatchesSearch,
+  sortEquipmentById,
+  stockFilterLabels,
+} from "@/lib/equipment-utils"
 import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 
@@ -203,6 +216,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [requestFormQr, setRequestFormQr] = React.useState("")
   const [qrDialogOpen, setQrDialogOpen] = React.useState(false)
   const [managementSearch, setManagementSearch] = React.useState("")
+  const [managementFilter, setManagementFilter] =
+    React.useState<StockFilter>("all")
   const [inventoryPage, setInventoryPage] = React.useState(1)
   const [historyPage, setHistoryPage] = React.useState(1)
   const [activeTab, setActiveTab] =
@@ -232,10 +247,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     : null
 
   const filteredEquipment = React.useMemo(() => {
-    return equipment.filter((item) =>
-      equipmentMatchesSearch(item, managementSearch)
+    return equipment.filter(
+      (item) =>
+        equipmentMatchesFilter(item, managementFilter) &&
+        equipmentMatchesSearch(item, managementSearch)
     )
-  }, [equipment, managementSearch])
+  }, [equipment, managementFilter, managementSearch])
   const {
     currentPage: currentInventoryPage,
     items: paginatedEquipment,
@@ -247,7 +264,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
   React.useEffect(() => {
     setInventoryPage(1)
-  }, [managementSearch])
+  }, [managementFilter, managementSearch])
 
   React.useEffect(() => {
     setRequestFormUrl(`${window.location.origin}/form`)
@@ -880,14 +897,34 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative mb-5 max-w-xl">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={managementSearch}
-                  onChange={(event) => setManagementSearch(event.target.value)}
-                  placeholder="ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก"
-                  className="h-11 rounded-xl border-slate-200 bg-white pl-10"
-                />
+              <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={managementSearch}
+                    onChange={(event) => setManagementSearch(event.target.value)}
+                    placeholder="ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก"
+                    className="h-11 rounded-xl border-slate-200 bg-white pl-10"
+                  />
+                </div>
+                <Select
+                  value={managementFilter}
+                  onValueChange={(value) =>
+                    setManagementFilter(value as StockFilter)
+                  }
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{stockFilterLabels.all}</SelectItem>
+                    <SelectItem value="available">
+                      {stockFilterLabels.available}
+                    </SelectItem>
+                    <SelectItem value="low">{stockFilterLabels.low}</SelectItem>
+                    <SelectItem value="out">{stockFilterLabels.out}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {loading ? (
                 <div className="py-8 text-center text-sm text-slate-600">

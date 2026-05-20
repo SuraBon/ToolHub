@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - main [ref=e54]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - heading "จัดการสต๊อก" [level=1] [ref=e73]
+          - paragraph [ref=e74]: เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิก และตรวจสถานะระบบ
+          - paragraph [ref=e75]:
+            - img [ref=e76]
+            - generic [ref=e79]: ต้องเข้าสู่ระบบก่อนแก้ไขข้อมูลสต๊อก
+        - generic [ref=e80]:
+          - button "กลับหน้าสต๊อก" [ref=e81] [cursor=pointer]:
+            - img [ref=e82]
+            - text: กลับหน้าสต๊อก
+          - button "ออกจากระบบ" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+            - text: ออกจากระบบ
+      - generic [ref=e88]:
+        - button "อุปกรณ์" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: อุปกรณ์
+        - button "ประวัติการเบิก" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - text: ประวัติการเบิก
+        - button "สถานะระบบ" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - text: สถานะระบบ
+        - button "QR ฟอร์มเบิก" [ref=e101] [cursor=pointer]:
+          - img [ref=e102]
+          - text: QR ฟอร์มเบิก
+      - generic [ref=e108]:
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - heading "รายการอุปกรณ์" [level=3] [ref=e112]
+            - paragraph [ref=e113]: จัดการรายการอุปกรณ์ทั้งหมด รวมถึงรายการที่หมดสต๊อก
+          - button "เพิ่มอุปกรณ์" [ref=e114] [cursor=pointer]:
+            - img [ref=e115]
+            - text: เพิ่มอุปกรณ์
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - img
+              - textbox "ค้นหาจากรหัส ชื่อ หน่วย หรือสถานะสต๊อก" [ref=e119]
+            - combobox [ref=e120] [cursor=pointer]:
+              - generic: ทั้งหมด
+              - img [ref=e121]
+          - generic [ref=e123]: กำลังโหลด...
+  - button "Open Next.js Dev Tools" [ref=e50] [cursor=pointer]:
+    - img [ref=e51]
+  - alert [ref=e68]
