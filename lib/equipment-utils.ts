@@ -17,6 +17,29 @@ export function formatEquipmentUnit(equipment: Equipment) {
     : equipment.baseUnit
 }
 
+export function formatRemainingQuantity(equipment: Equipment) {
+  const remaining = Math.max(0, equipment.remaining)
+  const ratio = equipment.ratio || 0
+
+  if (!equipment.mainUnit || ratio <= 0) {
+    return `${remaining} ${equipment.baseUnit}`
+  }
+
+  const mainAmount = Math.floor(remaining / ratio)
+  const baseAmount = remaining % ratio
+  const parts = []
+
+  if (mainAmount > 0) {
+    parts.push(`${mainAmount} ${equipment.mainUnit}`)
+  }
+
+  if (baseAmount > 0) {
+    parts.push(`${baseAmount} ${equipment.baseUnit}`)
+  }
+
+  return parts.length > 0 ? parts.join(" ") : `0 ${equipment.baseUnit}`
+}
+
 export function equipmentMatchesSearch(equipment: Equipment, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
@@ -29,6 +52,7 @@ export function equipmentMatchesSearch(equipment: Equipment, query: string) {
     String(equipment.totalStock),
     String(equipment.used),
     String(equipment.remaining),
+    formatRemainingQuantity(equipment),
     equipment.remaining <= 0 ? "หมด" : "พร้อมเบิก",
   ]
     .join(" ")

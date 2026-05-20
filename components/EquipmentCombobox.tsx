@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { equipmentMatchesSearch, formatEquipmentUnit } from "@/lib/equipment-utils"
+import { equipmentMatchesSearch, formatRemainingQuantity } from "@/lib/equipment-utils"
 import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 
@@ -168,7 +168,7 @@ export function EquipmentCombobox({
                           <p className="mt-1 truncate text-xs text-slate-500">
                             {unavailable
                               ? "หมดสต๊อก"
-                              : `คงเหลือ: ${eq.remaining} ${formatEquipmentUnit(eq)}`}
+                              : `คงเหลือ: ${formatRemainingQuantity(eq)}`}
                           </p>
                         </div>
                       </button>

@@ -10,12 +10,15 @@ import {
   Download,
   Edit,
   FileText,
-  Lock,
+  Info,
+  KeyRound,
+  LogOut,
   Package,
   Plus,
   QrCode,
   Search,
   Shield,
+  ShieldCheck,
   Trash2,
   Upload,
 } from "lucide-react"
@@ -65,6 +68,7 @@ import {
   type StockFilter,
   equipmentMatchesFilter,
   equipmentMatchesSearch,
+  formatRemainingQuantity,
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
@@ -169,6 +173,25 @@ const emptyEquipmentDraft: EquipmentDraft = {
   ratio: "",
 }
 
+function historyMatchesSearch(item: RequisitionHistory, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+
+  return [
+    item.requisitionNumber,
+    item.date,
+    item.name,
+    item.department,
+    item.equipmentName,
+    String(item.amount),
+    item.unit,
+    `${item.amount} ${item.unit}`,
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery)
+}
+
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
   if (!equipment) return emptyEquipmentDraft
   const ratio = equipment.ratio && equipment.ratio > 0 ? equipment.ratio : 0
@@ -218,6 +241,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [managementSearch, setManagementSearch] = React.useState("")
   const [managementFilter, setManagementFilter] =
     React.useState<StockFilter>("all")
+  const [historySearch, setHistorySearch] = React.useState("")
   const [inventoryPage, setInventoryPage] = React.useState(1)
   const [historyPage, setHistoryPage] = React.useState(1)
   const [activeTab, setActiveTab] =
@@ -253,6 +277,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         equipmentMatchesSearch(item, managementSearch)
     )
   }, [equipment, managementFilter, managementSearch])
+  const filteredHistory = React.useMemo(() => {
+    return history.filter((item) => historyMatchesSearch(item, historySearch))
+  }, [history, historySearch])
   const {
     currentPage: currentInventoryPage,
     items: paginatedEquipment,
@@ -260,11 +287,15 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const {
     currentPage: currentHistoryPage,
     items: paginatedHistory,
-  } = paginateItems(history, historyPage, HISTORY_PAGE_SIZE)
+  } = paginateItems(filteredHistory, historyPage, HISTORY_PAGE_SIZE)
 
   React.useEffect(() => {
     setInventoryPage(1)
   }, [managementFilter, managementSearch])
+
+  React.useEffect(() => {
+    setHistoryPage(1)
+  }, [historySearch])
 
   React.useEffect(() => {
     setRequestFormUrl(`${window.location.origin}/form`)
@@ -755,24 +786,41 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#dbeafe_0,#f8fafc_42%,#eef2ff_100%)] p-4">
         <Toaster />
-        <Card className="w-full max-w-md border-white/80 bg-white/85 shadow-2xl shadow-blue-200/60 backdrop-blur">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
-              <Shield className="h-6 w-6 text-white" />
+        <Card className="w-full max-w-md overflow-hidden border-white/80 bg-white/90 shadow-2xl shadow-blue-200/60 backdrop-blur">
+          <div className="h-1.5 bg-blue-600" />
+          <CardHeader className="space-y-3 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
+              <ShieldCheck className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">จัดการสต๊อก</CardTitle>
-            <CardDescription>เข้าสู่ระบบเพื่อจัดการอุปกรณ์และดูประวัติการเบิก</CardDescription>
+            <div>
+              <CardTitle className="text-2xl">เข้าสู่ระบบจัดการสต๊อก</CardTitle>
+              <CardDescription className="mt-2">
+                สำหรับเจ้าหน้าที่ที่ต้องเพิ่ม แก้ไข และตรวจสอบประวัติการเบิก
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input
-              type="password"
-              placeholder="รหัสผ่าน"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && handleLogin()}
-              className="h-12"
-            />
-            <Button onClick={handleLogin} className="h-12 w-full text-base">
+            <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>กรุณาใช้รหัสผ่านของผู้ดูแลระบบก่อนแก้ไขข้อมูลสต๊อก</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hrPassword">รหัสผ่าน</Label>
+              <div className="relative">
+                <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  id="hrPassword"
+                  type="password"
+                  placeholder="กรอกรหัสผ่านผู้ดูแล"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && handleLogin()}
+                  className="h-12 rounded-xl pl-10"
+                />
+              </div>
+            </div>
+            <Button onClick={handleLogin} className="h-12 w-full gap-2 rounded-xl text-base">
+              <ShieldCheck className="h-4 w-4" />
               เข้าสู่ระบบจัดการ
             </Button>
             {onBackToStock ? (
@@ -812,10 +860,6 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <p className="mt-2 text-sm text-slate-600">
               เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิก และตรวจสถานะระบบ
             </p>
-            <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              <Lock className="h-4 w-4" />
-              <span className="min-w-0 break-words">ต้องเข้าสู่ระบบก่อนแก้ไขข้อมูลสต๊อก</span>
-            </p>
           </div>
           <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
             {onBackToStock ? (
@@ -837,7 +881,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               onClick={handleLogout}
               className="h-11 w-full gap-2 rounded-xl"
             >
-              <Lock className="h-4 w-4" />
+              <LogOut className="h-4 w-4" />
               ออกจากระบบ
             </Button>
           </div>
@@ -1000,7 +1044,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                           </TableCell>
                           <TableCell className="text-center">{item.used}</TableCell>
                           <TableCell className="text-center font-semibold">
-                            {item.remaining}
+                            {formatRemainingQuantity(item)}
                           </TableCell>
                           <TableCell className="text-center">{item.baseUnit}</TableCell>
                           <TableCell className="text-center">{item.mainUnit || "-"}</TableCell>
@@ -1047,8 +1091,23 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         ) : activeTab === "history" ? (
           <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-xl">ประวัติการเบิก</CardTitle>
-              <CardDescription>ดูประวัติการเบิกอุปกรณ์ทั้งหมด</CardDescription>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <CardTitle className="text-xl">ประวัติการเบิก</CardTitle>
+                  <CardDescription>
+                    ดูและค้นหาประวัติการเบิกอุปกรณ์ทั้งหมด
+                  </CardDescription>
+                </div>
+                <div className="relative w-full lg:max-w-md">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={historySearch}
+                    onChange={(event) => setHistorySearch(event.target.value)}
+                    placeholder="ค้นหาเลขที่ใบเบิก ชื่อ แผนก อุปกรณ์ หรือหน่วย"
+                    className="h-11 rounded-xl border-slate-200 bg-white pl-10"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -1058,6 +1117,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               ) : history.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
                   ยังไม่มีประวัติการเบิก
+                </div>
+              ) : filteredHistory.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ไม่พบประวัติการเบิกที่ตรงกับคำค้น
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1133,7 +1196,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   <PaginationControls
                     page={currentHistoryPage}
                     pageSize={HISTORY_PAGE_SIZE}
-                    totalItems={history.length}
+                    totalItems={filteredHistory.length}
                     onPageChange={setHistoryPage}
                   />
                 </div>

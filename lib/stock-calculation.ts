@@ -2,6 +2,7 @@ import type { Equipment } from "@/types"
 import type { RequisitionPayload } from "@/lib/validation"
 import { stockUsageRange } from "@/lib/google-sheets-ranges"
 import { toBaseUnit } from "@/lib/unit-conversion"
+import { formatRemainingQuantity } from "@/lib/equipment-utils"
 
 type StockUpdate = {
   range: string
@@ -80,7 +81,7 @@ export function calculateStockUpdates(
 
     if (requestedBaseUnits > equipment.remaining) {
       throw new Error(
-        `สต๊อก ${equipment.name} ไม่เพียงพอ คงเหลือ ${equipment.remaining} ${equipment.baseUnit}`
+        `สต๊อก ${equipment.name} ไม่เพียงพอ คงเหลือ ${formatRemainingQuantity(equipment)}`
       )
     }
 

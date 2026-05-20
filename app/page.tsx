@@ -7,21 +7,14 @@ import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   ClipboardList,
-  Lock,
   Package,
   Search,
+  Settings,
   SlidersHorizontal,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PaginationControls } from "@/components/PaginationControls"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -31,14 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { apiGet } from "@/lib/client-api"
@@ -46,7 +31,7 @@ import {
   type StockFilter,
   equipmentMatchesFilter,
   equipmentMatchesSearch,
-  formatEquipmentUnit,
+  formatRemainingQuantity,
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
@@ -54,7 +39,7 @@ import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
 import HRDashboard from "@/components/HRDashboard"
 
-const STOCK_PAGE_SIZE = 10
+const STOCK_PAGE_SIZE = 12
 
 function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
   return item.image ? (
@@ -172,25 +157,24 @@ export default function StockOverviewPage() {
                   router.replace("/?view=management")
                 }}
               >
-                <Lock className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
                 จัดการสต๊อก
               </Button>
             </div>
           </div>
         </header>
 
-        <section>
-          <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
-            <CardHeader>
+        <section className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-6">
+            <div className="mb-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-xl">
+                  <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
                     <Package className="h-5 w-5 text-blue-600" />
                     รายการสต๊อก
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
                     กำลังแสดง: {stockFilterLabels[stockFilter]} · พบ {filteredEquipment.length} รายการ
-                  </CardDescription>
+                  </p>
                 </div>
                 <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] lg:max-w-xl">
                   <div className="relative">
@@ -221,13 +205,13 @@ export default function StockOverviewPage() {
                   </Select>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div>
               {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <Skeleton key={index} className="h-24 w-full rounded-xl" />
+                  ))}
                 </div>
               ) : equipment.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600">
@@ -239,70 +223,23 @@ export default function StockOverviewPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid gap-3 md:hidden">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {paginatedEquipment.map((item) => (
                       <div
                         key={item.id}
-                        className="grid grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                        className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md"
                       >
-                        <EquipmentImage item={item} size={56} />
-                        <div className="min-w-0">
+                        <EquipmentImage item={item} size={64} />
+                        <div className="flex min-w-0 flex-col justify-center gap-2">
                           <p className="truncate text-sm font-semibold text-slate-950">
                             {item.name}
                           </p>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                            <div className="rounded-lg bg-slate-50 px-3 py-2">
-                              <p className="text-xs text-slate-500">คงเหลือ</p>
-                              <p className="font-semibold text-slate-950">
-                                {item.remaining}
-                              </p>
-                            </div>
-                            <div className="rounded-lg bg-slate-50 px-3 py-2">
-                              <p className="text-xs text-slate-500">หน่วย</p>
-                              <p className="truncate font-semibold text-slate-950">
-                                {formatEquipmentUnit(item)}
-                              </p>
-                            </div>
-                          </div>
+                          <p className="text-lg font-bold text-slate-950">
+                            {formatRemainingQuantity(item)}
+                          </p>
                         </div>
                       </div>
                     ))}
-                  </div>
-                  <div className="hidden overflow-x-auto md:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[72px] whitespace-nowrap text-center">
-                            รูป
-                          </TableHead>
-                          <TableHead className="min-w-[180px] whitespace-nowrap">
-                            อุปกรณ์
-                          </TableHead>
-                          <TableHead className="whitespace-nowrap text-center">
-                            คงเหลือ
-                          </TableHead>
-                          <TableHead className="whitespace-nowrap text-center">หน่วย</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedEquipment.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <EquipmentImage item={item} />
-                              </div>
-                            </TableCell>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell className="text-center font-semibold">
-                              {item.remaining}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-center">
-                              {formatEquipmentUnit(item)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
                   </div>
                   <PaginationControls
                     page={currentStockPage}
@@ -312,9 +249,7 @@ export default function StockOverviewPage() {
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
-
+            </div>
         </section>
       </div>
     </main>
