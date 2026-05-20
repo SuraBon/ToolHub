@@ -316,11 +316,11 @@ function StockOverviewContent() {
                           className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)]"
                         >
                           <EquipmentImage item={item} size={64} />
-                          <div className="flex min-w-0 flex-col justify-center gap-2">
-                            <p className="truncate text-sm font-semibold text-slate-950">
+                          <div className="flex min-w-0 flex-col justify-center gap-1.5">
+                            <p className="truncate text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">
                               {item.name}
                             </p>
-                            <p className="text-lg font-bold text-slate-950">
+                            <p className="text-base font-bold leading-6 text-slate-950 sm:text-lg">
                               {formatRemainingQuantity(item)}
                             </p>
                           </div>
