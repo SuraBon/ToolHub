@@ -1,7 +1,8 @@
 ﻿"use client"
 
 import * as React from "react"
-import { AlertTriangle, Package } from "lucide-react"
+import Link from "next/link"
+import { AlertTriangle, ArrowLeft, Package } from "lucide-react"
 
 import { RequisitionForm } from "@/components/RequisitionForm"
 import {
@@ -119,13 +120,27 @@ export default function FormPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Package className="h-5 w-5 text-blue-600" />
-              ฟอร์มเบิกอุปกรณ์
-            </CardTitle>
-            <CardDescription>
-              กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
-            </CardDescription>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  ฟอร์มเบิกอุปกรณ์
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
+                </CardDescription>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                className="h-11 w-full gap-2 rounded-xl sm:w-auto"
+              >
+                <Link href="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  กลับหน้าคลัง
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-6">
             {loading ? (

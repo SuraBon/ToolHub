@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowRight,
   ClipboardList,
@@ -32,6 +32,7 @@ import {
   equipmentMatchesFilter,
   equipmentMatchesSearch,
   formatRemainingQuantity,
+  getStockStatus,
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
@@ -62,8 +63,9 @@ function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number })
   )
 }
 
-export default function StockOverviewPage() {
+function StockOverviewContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [showManagement, setShowManagement] = React.useState(false)
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -97,11 +99,7 @@ export default function StockOverviewPage() {
     setStockPage(1)
   }, [searchQuery, stockFilter])
 
-  React.useEffect(() => {
-    setShowManagement(
-      new URLSearchParams(window.location.search).get("view") === "management"
-    )
-  }, [])
+  const isManagementRoute = searchParams.get("view") === "management"
 
   const filteredEquipment = equipment.filter(
     (item) =>
@@ -113,7 +111,7 @@ export default function StockOverviewPage() {
     items: paginatedEquipment,
   } = paginateItems(filteredEquipment, stockPage, STOCK_PAGE_SIZE)
 
-  if (showManagement) {
+  if (showManagement || isManagementRoute) {
     return (
       <HRDashboard
         onBackToStock={() => {
@@ -224,22 +222,31 @@ export default function StockOverviewPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {paginatedEquipment.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md"
-                      >
-                        <EquipmentImage item={item} size={64} />
-                        <div className="flex min-w-0 flex-col justify-center gap-2">
-                          <p className="truncate text-sm font-semibold text-slate-950">
-                            {item.name}
-                          </p>
-                          <p className="text-lg font-bold text-slate-950">
-                            {formatRemainingQuantity(item)}
-                          </p>
+                    {paginatedEquipment.map((item) => {
+                      const status = getStockStatus(item)
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="relative grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 pr-24 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                        >
+                          <span
+                            className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.className}`}
+                          >
+                            {status.label}
+                          </span>
+                          <EquipmentImage item={item} size={64} />
+                          <div className="flex min-w-0 flex-col justify-center gap-2">
+                            <p className="truncate text-sm font-semibold text-slate-950">
+                              {item.name}
+                            </p>
+                            <p className="text-lg font-bold text-slate-950">
+                              {formatRemainingQuantity(item)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   <PaginationControls
                     page={currentStockPage}
@@ -253,5 +260,28 @@ export default function StockOverviewPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+export default function StockOverviewPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-6">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className="h-24 w-full rounded-xl" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <StockOverviewContent />
+    </React.Suspense>
   )
 }

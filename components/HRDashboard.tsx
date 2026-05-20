@@ -223,6 +223,7 @@ type HRDashboardProps = {
 
 export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const router = useRouter()
+  const [checkingAuth, setCheckingAuth] = React.useState(true)
   const [isAuthenticated, setIsAuthenticated] = React.useState(false)
   const [password, setPassword] = React.useState("")
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
@@ -360,6 +361,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     let cancelled = false
 
     async function checkHrSession() {
+      setCheckingAuth(true)
       try {
         const result = await apiGet<AuthResponse>("/api/hr-auth", {
           cache: "no-store",
@@ -371,6 +373,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         }
       } catch (error) {
         console.error("Error checking HR session:", error)
+      } finally {
+        if (!cancelled) {
+          setCheckingAuth(false)
+        }
       }
     }
 
@@ -780,6 +786,31 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     } finally {
       setDeletingEquipment(false)
     }
+  }
+
+  if (checkingAuth) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#dbeafe_0,#f8fafc_42%,#eef2ff_100%)] p-4">
+        <Card className="w-full max-w-md border-white/80 bg-white/90 shadow-2xl shadow-blue-200/60 backdrop-blur">
+          <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-300">
+              <ShieldCheck className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-950">
+                กำลังตรวจสอบสิทธิ์
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                ระบบกำลังตรวจสอบสถานะการเข้าสู่ระบบจัดการสต๊อก
+              </p>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
   if (!isAuthenticated) {
