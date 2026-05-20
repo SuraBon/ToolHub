@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 
 import { EquipmentCombobox } from "@/components/EquipmentCombobox"
+import { MobileActionButton } from "@/components/MobileActionButton"
 import { UnitSelector } from "@/components/UnitSelector"
-import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
+import { showApiErrorToast } from "@/lib/show-api-error-toast"
 import { RequisitionFormSchema } from "@/types"
 import type {
   Equipment,
@@ -98,10 +99,10 @@ export function RequisitionForm({
       await onSubmit(data)
       form.reset()
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้ กรุณาตรวจสอบข้อมูลและลองอีกครั้ง",
+      showApiErrorToast({
+        toast,
+        error,
+        fallback: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้ กรุณาตรวจสอบข้อมูลและลองอีกครั้ง",
       })
     }
   }
@@ -206,7 +207,7 @@ export function RequisitionForm({
           <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold">รายการอุปกรณ์</h3>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
+              <MobileActionButton
                 type="button"
                 variant="outline"
                 size="sm"
@@ -223,7 +224,7 @@ export function RequisitionForm({
               >
                 <Plus className="h-4 w-4" />
                 เพิ่มรายการอุปกรณ์
-              </Button>
+              </MobileActionButton>
             </motion.div>
           </div>
 
@@ -328,7 +329,7 @@ export function RequisitionForm({
                         whileTap={{ scale: 0.9 }}
                         className="self-end sm:self-start"
                       >
-                        <Button
+                        <MobileActionButton
                           type="button"
                           variant="ghost"
                           size="icon"
@@ -336,7 +337,7 @@ export function RequisitionForm({
                           className="h-11 w-11 shrink-0 rounded-xl hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </MobileActionButton>
                       </motion.div>
                     )}
                   </div>
@@ -347,13 +348,13 @@ export function RequisitionForm({
         </div>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
+          <MobileActionButton
             type="submit"
             className="h-12 w-full text-base"
             disabled={isSubmitting}
           >
             {isSubmitting ? "กำลังส่งคำขอ..." : "ส่งคำขอเบิกอุปกรณ์"}
-          </Button>
+          </MobileActionButton>
         </motion.div>
       </form>
     </Form>

@@ -1,10 +1,11 @@
 ﻿"use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { AlertTriangle, ArrowLeft, Package } from "lucide-react"
+import { AlertTriangle, Package } from "lucide-react"
 
+import { BackToStockButton } from "@/components/BackToStockButton"
+import { MobileActionButton } from "@/components/MobileActionButton"
 import { RequisitionForm } from "@/components/RequisitionForm"
 import {
   Card,
@@ -21,11 +22,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { apiGet, apiPost } from "@/lib/client-api"
+import { getErrorMessage, showApiErrorToast } from "@/lib/show-api-error-toast"
 import type { Equipment, RequisitionForm as RequisitionFormType } from "@/types"
 
 type RequisitionResponse = {
@@ -65,10 +66,10 @@ function FormPageContent() {
     } catch (error) {
       console.error("Error fetching equipment:", error)
       setEquipment([])
-      toast({
-        variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูลคลังอุปกรณ์ได้",
+      showApiErrorToast({
+        toast,
+        error,
+        fallback: "ไม่สามารถดึงข้อมูลคลังอุปกรณ์ได้",
       })
     } finally {
       setLoading(false)
@@ -90,8 +91,10 @@ function FormPageContent() {
       })
       await fetchEquipment()
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้"
+      const errorMessage = getErrorMessage(
+        error,
+        "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้"
+      )
 
       if (
         errorMessage.includes("สต๊อก") ||
@@ -102,10 +105,10 @@ function FormPageContent() {
       }
 
       console.error("Error submitting requisition:", error)
-      toast({
-        variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: errorMessage,
+      showApiErrorToast({
+        toast,
+        error,
+        fallback: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้",
       })
     } finally {
       setSubmitting(false)
@@ -130,9 +133,13 @@ function FormPageContent() {
             {stockError}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button onClick={() => setStockError("")} className="w-full sm:w-auto">
+            <MobileActionButton
+              type="button"
+              onClick={() => setStockError("")}
+              className="w-full sm:w-auto"
+            >
               ตกลง
-            </Button>
+            </MobileActionButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -149,16 +156,7 @@ function FormPageContent() {
                   กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
                 </CardDescription>
               </div>
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 w-full gap-2 rounded-xl sm:w-auto"
-              >
-                <Link href="/">
-                  <ArrowLeft className="h-4 w-4" />
-                  กลับไปยังคลังอุปกรณ์
-                </Link>
-              </Button>
+              <BackToStockButton className="h-11 w-full gap-2 rounded-xl sm:w-auto" />
             </div>
           </CardHeader>
           <CardContent className="pt-6">

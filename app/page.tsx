@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MobileActionButton } from "@/components/MobileActionButton"
 import { PaginationControls } from "@/components/PaginationControls"
 import { Input } from "@/components/ui/input"
 import {
@@ -39,18 +40,11 @@ import {
   stockFilterLabels,
 } from "@/lib/equipment-utils"
 import { paginateItems } from "@/lib/pagination"
+import { useEquipmentSelection } from "@/lib/use-equipment-selection"
 import type { Equipment } from "@/types"
 import HRDashboard from "@/components/HRDashboard"
 
 const STOCK_PAGE_SIZE = 12
-
-function getRequisitionHref(equipmentIds: string[]) {
-  const uniqueIds = Array.from(new Set(equipmentIds))
-
-  return uniqueIds.length > 0
-    ? `/form?equipmentIds=${encodeURIComponent(uniqueIds.join(","))}`
-    : "/form"
-}
 
 function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number }) {
   return item.image ? (
@@ -82,7 +76,6 @@ function StockOverviewContent() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [stockFilter, setStockFilter] = React.useState<StockFilter>("all")
   const [stockPage, setStockPage] = React.useState(1)
-  const [selectedEquipmentIds, setSelectedEquipmentIds] = React.useState<string[]>([])
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -117,28 +110,18 @@ function StockOverviewContent() {
       equipmentMatchesFilter(item, stockFilter) &&
       equipmentMatchesSearch(item, searchQuery)
   )
-  const selectedEquipment = selectedEquipmentIds
-    .map((equipmentId) => equipment.find((item) => item.id === equipmentId))
-    .filter((item): item is Equipment => Boolean(item))
-  const selectedEquipmentIdSet = new Set(selectedEquipmentIds)
-  const requisitionHref = getRequisitionHref(selectedEquipmentIds)
+  const {
+    selectedEquipment,
+    selectedEquipmentIdSet,
+    requisitionHref,
+    add: addToSelection,
+    remove: removeFromSelection,
+    clear: clearSelection,
+  } = useEquipmentSelection(equipment)
   const {
     currentPage: currentStockPage,
     items: paginatedEquipment,
   } = paginateItems(filteredEquipment, stockPage, STOCK_PAGE_SIZE)
-
-  const addToSelection = (item: Equipment) => {
-    if (item.remaining <= 0) return
-    setSelectedEquipmentIds((current) =>
-      current.includes(item.id) ? current : [...current, item.id]
-    )
-  }
-
-  const removeFromSelection = (equipmentId: string) => {
-    setSelectedEquipmentIds((current) =>
-      current.filter((itemId) => itemId !== equipmentId)
-    )
-  }
 
   if (showManagement || isManagementRoute) {
     return (
@@ -167,6 +150,7 @@ function StockOverviewContent() {
             </div>
             <div className="grid w-full gap-3 sm:w-auto lg:flex">
               <Button
+                type="button"
                 variant="outline"
                 className="h-12 w-full gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 onClick={() => {
@@ -258,7 +242,7 @@ function StockOverviewContent() {
                   )}
                 </div>
                 <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto">
-                  <Button
+                  <MobileActionButton
                     asChild={selectedEquipment.length > 0}
                     disabled={selectedEquipment.length === 0}
                     className="h-11 w-full gap-2 rounded-xl lg:w-auto"
@@ -274,17 +258,17 @@ function StockOverviewContent() {
                         ดำเนินการเบิก
                       </span>
                     )}
-                  </Button>
-                  <Button
+                  </MobileActionButton>
+                  <MobileActionButton
                     type="button"
                     variant="outline"
                     disabled={selectedEquipment.length === 0}
-                    onClick={() => setSelectedEquipmentIds([])}
+                    onClick={clearSelection}
                     className="h-11 w-full gap-2 rounded-xl border-blue-100 bg-white lg:w-auto"
                   >
                     <Trash2 className="h-4 w-4" />
                     ล้างรายการที่เลือก
-                  </Button>
+                  </MobileActionButton>
                 </div>
               </div>
             </div>
@@ -326,16 +310,16 @@ function StockOverviewContent() {
                           </div>
                           <div className="col-span-2 flex justify-end sm:col-span-1">
                             {unavailable ? (
-                              <Button
+                              <MobileActionButton
                                 type="button"
                                 disabled
                                 variant="outline"
                                 className="h-10 w-full rounded-xl px-3"
                               >
                                 หมดสต๊อก
-                              </Button>
+                              </MobileActionButton>
                             ) : selected ? (
-                              <Button
+                              <MobileActionButton
                                 type="button"
                                 variant="outline"
                                 onClick={() => removeFromSelection(item.id)}
@@ -343,9 +327,9 @@ function StockOverviewContent() {
                               >
                                 <Check className="h-4 w-4" />
                                 เลือกไว้แล้ว
-                              </Button>
+                              </MobileActionButton>
                             ) : (
-                              <Button
+                              <MobileActionButton
                                 type="button"
                                 variant="outline"
                                 onClick={() => addToSelection(item)}
@@ -353,7 +337,7 @@ function StockOverviewContent() {
                               >
                                 <ShoppingCart className="h-4 w-4" />
                                 เพิ่มรายการ
-                              </Button>
+                              </MobileActionButton>
                             )}
                           </div>
                         </div>
@@ -380,12 +364,12 @@ function StockOverviewContent() {
                 {selectedEquipment.length} รายการ
               </p>
             </div>
-            <Button asChild className="h-11 gap-2 rounded-xl">
+            <MobileActionButton asChild className="h-11 gap-2 rounded-xl">
               <Link href={requisitionHref}>
                 <ClipboardList className="h-4 w-4" />
                 ดำเนินการเบิก
               </Link>
-            </Button>
+            </MobileActionButton>
           </div>
         </div>
       ) : null}

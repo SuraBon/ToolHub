@@ -39,7 +39,7 @@ export function PaginationControls({
           size="sm"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          className="w-full gap-1 sm:w-auto"
+          className="h-11 w-full gap-1 rounded-xl sm:w-auto"
         >
           <ChevronLeft className="h-4 w-4" />
           ก่อนหน้า
@@ -53,7 +53,7 @@ export function PaginationControls({
           size="sm"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="w-full gap-1 sm:w-auto"
+          className="h-11 w-full gap-1 rounded-xl sm:w-auto"
         >
           ถัดไป
           <ChevronRight className="h-4 w-4" />

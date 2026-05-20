@@ -1,11 +1,9 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
-  ArrowLeft,
   Copy,
   Download,
   Edit,
@@ -25,8 +23,11 @@ import {
 import Image from "next/image"
 import QRCode from "qrcode"
 
+import { BackToStockButton } from "@/components/BackToStockButton"
 import { Button } from "@/components/ui/button"
+import { ConfirmActionDialog } from "@/components/ConfirmActionDialog"
 import { EquipmentCombobox } from "@/components/EquipmentCombobox"
+import { MobileActionButton } from "@/components/MobileActionButton"
 import { PaginationControls } from "@/components/PaginationControls"
 import { UnitSelector } from "@/components/UnitSelector"
 import {
@@ -64,6 +65,7 @@ import {
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from "@/lib/client-api"
+import { showApiErrorToast } from "@/lib/show-api-error-toast"
 import {
   type StockFilter,
   equipmentMatchesFilter,
@@ -455,10 +457,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     } catch (error) {
       if (handleAuthenticatedError(error)) return
       console.error("Error fetching HR data:", error)
-      toast({
-        variant: "destructive",
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดึงข้อมูลได้",
+      showApiErrorToast({
+        toast,
+        error,
+        fallback: "ไม่สามารถดึงข้อมูลได้",
       })
     } finally {
       if (showLoading) {
@@ -543,11 +545,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       }
     } catch (error) {
       console.error("Error authenticating:", error)
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "เข้าสู่ระบบไม่สำเร็จ",
-        description:
-          error instanceof Error ? error.message : "เกิดข้อผิดพลาด",
+        fallback: "เกิดข้อผิดพลาด",
       })
     }
   }
@@ -568,13 +570,6 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
     router.push("/")
   }
-
-  const backToStockControl = (
-    <>
-      <ArrowLeft className="h-4 w-4" />
-      กลับไปยังคลังอุปกรณ์
-    </>
-  )
 
   const handleCopyRequestFormUrl = async () => {
     if (!requestFormUrl) return
@@ -731,11 +726,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       resetImageEditor()
     } catch (error) {
       if (handleAuthenticatedError(error)) return
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "ไม่สามารถอัปโหลดรูปภาพได้",
-        description:
-          error instanceof Error ? error.message : "ไม่สามารถอัปโหลดรูปภาพได้",
+        fallback: "ไม่สามารถอัปโหลดรูปภาพได้",
       })
     } finally {
       setUploadingImage(false)
@@ -780,11 +775,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "ไม่สามารถบันทึกข้อมูลได้",
-        description:
-          error instanceof Error ? error.message : "ไม่สามารถบันทึกอุปกรณ์ได้",
+        fallback: "ไม่สามารถบันทึกอุปกรณ์ได้",
       })
     } finally {
       setSavingEquipment(false)
@@ -865,13 +860,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "ไม่สามารถแก้ไขประวัติการเบิกอุปกรณ์ได้",
-        description:
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถแก้ไขประวัติการเบิกอุปกรณ์ได้",
+        fallback: "ไม่สามารถแก้ไขประวัติการเบิกอุปกรณ์ได้",
       })
     } finally {
       setSavingHistory(false)
@@ -897,13 +890,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "ไม่สามารถยกเลิกการเบิกได้",
-        description:
-          error instanceof Error
-            ? error.message
-            : "ไม่สามารถยกเลิกการเบิกได้",
+        fallback: "ไม่สามารถยกเลิกการเบิกได้",
       })
     } finally {
       setCancelingHistory(false)
@@ -930,11 +921,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
-      toast({
-        variant: "destructive",
+      showApiErrorToast({
+        toast,
+        error,
         title: "ไม่สามารถลบข้อมูลได้",
-        description:
-          error instanceof Error ? error.message : "ไม่สามารถลบอุปกรณ์ได้",
+        fallback: "ไม่สามารถลบอุปกรณ์ได้",
       })
     } finally {
       setDeletingEquipment(false)
@@ -1003,27 +994,21 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 />
               </div>
             </div>
-            <Button onClick={handleLogin} className="h-12 w-full gap-2 rounded-xl text-base">
+            <MobileActionButton
+              type="button"
+              onClick={handleLogin}
+              className="h-12 w-full text-base"
+            >
               <ShieldCheck className="h-4 w-4" />
               เข้าสู่ระบบจัดการคลังอุปกรณ์
-            </Button>
+            </MobileActionButton>
             {onBackToStock ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onBackToStock}
+              <BackToStockButton
+                onBack={onBackToStock}
                 className="h-11 w-full gap-2 rounded-xl border-slate-200 bg-white/90 font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              >
-                {backToStockControl}
-              </Button>
+              />
             ) : (
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 w-full gap-2 rounded-xl border-slate-200 bg-white/90 font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              >
-                <Link href="/">{backToStockControl}</Link>
-              </Button>
+              <BackToStockButton className="h-11 w-full gap-2 rounded-xl border-slate-200 bg-white/90 font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" />
             )}
           </CardContent>
         </Card>
@@ -1047,33 +1032,29 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           </div>
           <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
             {onBackToStock ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onBackToStock}
+              <BackToStockButton
+                onBack={onBackToStock}
                 className="h-11 w-full gap-2 rounded-xl"
-              >
-                {backToStockControl}
-              </Button>
+              />
             ) : (
-              <Button asChild variant="outline" className="h-11 w-full gap-2 rounded-xl">
-                <Link href="/">{backToStockControl}</Link>
-              </Button>
+              <BackToStockButton className="h-11 w-full gap-2 rounded-xl" />
             )}
-            <Button
+            <MobileActionButton
+              type="button"
               variant="outline"
               onClick={handleLogout}
               className="h-11 w-full gap-2 rounded-xl"
             >
               <LogOut className="h-4 w-4" />
               ออกจากระบบ
-            </Button>
+            </MobileActionButton>
           </div>
           </div>
         </header>
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Button
+            type="button"
             variant={activeTab === "equipment" ? "default" : "outline"}
             onClick={() => setActiveTab("equipment")}
             className="h-11 gap-2 rounded-xl"
@@ -1082,6 +1063,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             อุปกรณ์
           </Button>
           <Button
+            type="button"
             variant={activeTab === "history" ? "default" : "outline"}
             onClick={() => setActiveTab("history")}
             className="h-11 gap-2 rounded-xl"
@@ -1090,6 +1072,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             ประวัติการเบิกอุปกรณ์
           </Button>
           <Button
+            type="button"
             variant={activeTab === "monitoring" ? "default" : "outline"}
             onClick={() => setActiveTab("monitoring")}
             className="h-11 gap-2 rounded-xl"
@@ -1118,10 +1101,14 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                     จัดการรายการอุปกรณ์ทั้งหมด รวมถึงรายการที่หมดสต๊อก
                   </CardDescription>
                 </div>
-                <Button onClick={openAddDialog} className="h-11 w-full gap-2 rounded-xl sm:w-auto">
+                <MobileActionButton
+                  type="button"
+                  onClick={openAddDialog}
+                  className="h-11 w-full gap-2 rounded-xl sm:w-auto"
+                >
                   <Plus className="h-4 w-4" />
                   เพิ่มรายการอุปกรณ์
-                </Button>
+                </MobileActionButton>
               </div>
             </CardHeader>
             <CardContent>
@@ -1237,6 +1224,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                           <TableCell>
                             <div className="flex justify-center gap-1">
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openEditDialog(item)}
@@ -1246,6 +1234,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                                 <span className="sr-only">แก้ไข</span>
                               </Button>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setDeleteTarget(item)}
@@ -1678,6 +1667,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setHistoryDialogOpen(false)}
                 disabled={savingHistory}
@@ -1686,6 +1676,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 ยกเลิก
               </Button>
               <Button
+                type="button"
                 onClick={handleSaveHistory}
                 disabled={savingHistory}
                 className="w-full sm:w-auto"
@@ -1961,6 +1952,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setEditDialogOpen(false)}
                 disabled={savingEquipment}
@@ -1969,6 +1961,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 ยกเลิก
               </Button>
               <Button
+                type="button"
                 onClick={handleSaveEquipment}
                 disabled={savingEquipment}
                 className="w-full sm:w-auto"
@@ -1979,96 +1972,61 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           </DialogContent>
         </Dialog>
 
-        <Dialog
+        <ConfirmActionDialog
           open={Boolean(cancelHistoryTarget)}
           onOpenChange={(open) => !open && setCancelHistoryTarget(null)}
+          title={
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              ยืนยันการยกเลิกการเบิก
+            </span>
+          }
+          description="รายการนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์"
+          cancelLabel="ไม่ดำเนินการ"
+          confirmLabel="ยืนยันการยกเลิก"
+          loadingLabel="กำลังยกเลิก..."
+          variant="destructive"
+          loading={cancelingHistory}
+          onConfirm={handleCancelHistory}
+          onCancel={() => setCancelHistoryTarget(null)}
         >
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-rose-600" />
-                ยืนยันการยกเลิกการเบิก
-              </DialogTitle>
-              <DialogDescription>
-                รายการนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์
-              </DialogDescription>
-            </DialogHeader>
+          {cancelHistoryTarget && (
+            <div className="space-y-1 rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-950">
+              <p className="font-semibold">
+                {cancelHistoryTarget.requisitionNumber}
+              </p>
+              <p>{cancelHistoryTarget.equipmentName}</p>
+              <p>
+                จำนวน {cancelHistoryTarget.amount} {cancelHistoryTarget.unit}
+              </p>
+            </div>
+          )}
+        </ConfirmActionDialog>
 
-            {cancelHistoryTarget && (
-              <div className="space-y-1 rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-950">
-                <p className="font-semibold">
-                  {cancelHistoryTarget.requisitionNumber}
-                </p>
-                <p>{cancelHistoryTarget.equipmentName}</p>
-                <p>
-                  จำนวน {cancelHistoryTarget.amount} {cancelHistoryTarget.unit}
-                </p>
-              </div>
-            )}
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                variant="outline"
-                onClick={() => setCancelHistoryTarget(null)}
-                disabled={cancelingHistory}
-                className="w-full sm:w-auto"
-              >
-                ไม่ดำเนินการ
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleCancelHistory}
-                disabled={cancelingHistory}
-                className="w-full sm:w-auto"
-              >
-                {cancelingHistory ? "กำลังยกเลิก..." : "ยืนยันการยกเลิก"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
+        <ConfirmActionDialog
           open={Boolean(deleteTarget)}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
+          title={
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              ยืนยันการลบข้อมูลอุปกรณ์
+            </span>
+          }
+          description="รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าคลังอุปกรณ์หรือฟอร์มเบิกอุปกรณ์"
+          confirmLabel="ลบข้อมูลอุปกรณ์"
+          loadingLabel="กำลังลบ..."
+          variant="destructive"
+          loading={deletingEquipment}
+          onConfirm={handleDeleteEquipment}
+          onCancel={() => setDeleteTarget(null)}
         >
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                ยืนยันการลบข้อมูลอุปกรณ์
-              </DialogTitle>
-              <DialogDescription>
-                รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าคลังอุปกรณ์หรือฟอร์มเบิกอุปกรณ์
-              </DialogDescription>
-            </DialogHeader>
-
-            {deleteTarget && (
-              <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm">
-                <p className="font-semibold text-red-950">{deleteTarget.name}</p>
-                <p className="mt-1 text-red-800">รหัส: {deleteTarget.id}</p>
-              </div>
-            )}
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deletingEquipment}
-                className="w-full sm:w-auto"
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteEquipment}
-                disabled={deletingEquipment}
-                className="w-full sm:w-auto"
-              >
-                {deletingEquipment ? "กำลังลบ..." : "ลบข้อมูลอุปกรณ์"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          {deleteTarget && (
+            <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm">
+              <p className="font-semibold text-red-950">{deleteTarget.name}</p>
+              <p className="mt-1 text-red-800">รหัส: {deleteTarget.id}</p>
+            </div>
+          )}
+        </ConfirmActionDialog>
       </div>
     </main>
   )
