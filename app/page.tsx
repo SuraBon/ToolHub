@@ -47,7 +47,6 @@ import {
   equipmentMatchesFilter,
   equipmentMatchesSearch,
   formatEquipmentUnit,
-  getStockStatus,
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
@@ -119,8 +118,6 @@ export default function StockOverviewPage() {
     )
   }, [])
 
-  const availableItems = equipment.filter((item) => item.remaining > 0)
-  const outOfStockItems = equipment.filter((item) => item.remaining <= 0)
   const filteredEquipment = equipment.filter(
     (item) =>
       equipmentMatchesFilter(item, stockFilter) &&
@@ -182,33 +179,6 @@ export default function StockOverviewPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <Card className="border-blue-100 bg-white/85 shadow-lg shadow-blue-100/60">
-            <CardHeader className="pb-2">
-              <CardDescription>อุปกรณ์ทั้งหมด</CardDescription>
-              <CardTitle className="text-3xl text-blue-700">
-                {loading ? <Skeleton className="h-9 w-20" /> : equipment.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-emerald-100 bg-white/85 shadow-lg shadow-emerald-100/60">
-            <CardHeader className="pb-2">
-              <CardDescription>ยังมีสต๊อก</CardDescription>
-              <CardTitle className="text-3xl text-emerald-700">
-                {loading ? <Skeleton className="h-9 w-24" /> : availableItems.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-rose-100 bg-white/85 shadow-lg shadow-rose-100/60">
-            <CardHeader className="pb-2">
-              <CardDescription>หมดสต๊อก</CardDescription>
-              <CardTitle className="text-3xl text-rose-700">
-                {loading ? <Skeleton className="h-9 w-16" /> : outOfStockItems.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </section>
-
         <section>
           <Card className="border-white/80 bg-white/85 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
@@ -269,7 +239,36 @@ export default function StockOverviewPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="overflow-x-auto">
+                  <div className="grid gap-3 md:hidden">
+                    {paginatedEquipment.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                      >
+                        <EquipmentImage item={item} size={56} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-950">
+                            {item.name}
+                          </p>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                              <p className="text-xs text-slate-500">คงเหลือ</p>
+                              <p className="font-semibold text-slate-950">
+                                {item.remaining}
+                              </p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                              <p className="text-xs text-slate-500">หน่วย</p>
+                              <p className="truncate font-semibold text-slate-950">
+                                {formatEquipmentUnit(item)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden overflow-x-auto md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -280,15 +279,8 @@ export default function StockOverviewPage() {
                             อุปกรณ์
                           </TableHead>
                           <TableHead className="whitespace-nowrap text-center">
-                            สต๊อกรวม
-                          </TableHead>
-                          <TableHead className="whitespace-nowrap text-center">
-                            เบิกไปแล้ว
-                          </TableHead>
-                          <TableHead className="whitespace-nowrap text-center">
                             คงเหลือ
                           </TableHead>
-                          <TableHead className="whitespace-nowrap text-center">สถานะ</TableHead>
                           <TableHead className="whitespace-nowrap text-center">หน่วย</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -301,21 +293,8 @@ export default function StockOverviewPage() {
                               </div>
                             </TableCell>
                             <TableCell>{item.name}</TableCell>
-                            <TableCell className="text-center">
-                              {item.totalStock}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {item.used}
-                            </TableCell>
                             <TableCell className="text-center font-semibold">
                               {item.remaining}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${getStockStatus(item).className}`}
-                              >
-                                {getStockStatus(item).label}
-                              </span>
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-center">
                               {formatEquipmentUnit(item)}

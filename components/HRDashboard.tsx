@@ -1242,7 +1242,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         )}
 
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-blue-600" />
@@ -1319,7 +1319,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             }
           }}
         >
-          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>แก้ไขประวัติการเบิก</DialogTitle>
               <DialogDescription>
@@ -1420,7 +1420,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         </Dialog>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>
                 {editingEquipment ? "แก้ไขอุปกรณ์" : "เพิ่มอุปกรณ์"}
@@ -1430,7 +1430,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-2 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-4 py-2 sm:grid-cols-2">
               {editingEquipment ? (
                 <div className="space-y-2">
                   <Label>รหัสอุปกรณ์</Label>
@@ -1447,9 +1447,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   onChange={(event) => updateDraft("name", event.target.value)}
                 />
               </div>
-              <div className="space-y-3 sm:col-span-2">
+              <div className="min-w-0 space-y-3 sm:col-span-2">
                 <Label htmlFor="imageUpload">รูปภาพอุปกรณ์</Label>
-                <div className="grid gap-3 sm:grid-cols-[112px_1fr]">
+                <div className="grid min-w-0 gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
                   <Label
                     htmlFor="imageUpload"
                     className="group relative flex h-28 w-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 transition hover:border-blue-300 hover:bg-blue-50"
@@ -1470,7 +1470,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       คลิกเพื่อเลือกรูป
                     </span>
                   </Label>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2">
                     <Input
                       id="imageUpload"
                       type="file"
@@ -1583,6 +1583,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       onChange={(event) =>
                         updateDraft("image", event.target.value)
                       }
+                      className="min-w-0"
                     />
                     <p className="flex items-center gap-2 text-xs text-slate-500">
                       <Upload className="h-3.5 w-3.5" />
