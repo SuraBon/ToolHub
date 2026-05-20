@@ -3,6 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   ClipboardList,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/equipment-utils"
 import { paginateItems } from "@/lib/pagination"
 import type { Equipment } from "@/types"
+import HRDashboard from "@/components/HRDashboard"
 
 const STOCK_PAGE_SIZE = 10
 
@@ -77,6 +79,8 @@ function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number })
 }
 
 export default function StockOverviewPage() {
+  const router = useRouter()
+  const [showManagement, setShowManagement] = React.useState(false)
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -109,6 +113,12 @@ export default function StockOverviewPage() {
     setStockPage(1)
   }, [searchQuery, stockFilter])
 
+  React.useEffect(() => {
+    setShowManagement(
+      new URLSearchParams(window.location.search).get("view") === "management"
+    )
+  }, [])
+
   const availableItems = equipment.filter((item) => item.remaining > 0)
   const outOfStockItems = equipment.filter((item) => item.remaining <= 0)
   const filteredEquipment = equipment.filter(
@@ -120,6 +130,17 @@ export default function StockOverviewPage() {
     currentPage: currentStockPage,
     items: paginatedEquipment,
   } = paginateItems(filteredEquipment, stockPage, STOCK_PAGE_SIZE)
+
+  if (showManagement) {
+    return (
+      <HRDashboard
+        onBackToStock={() => {
+          setShowManagement(false)
+          router.replace("/")
+        }}
+      />
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
@@ -147,14 +168,15 @@ export default function StockOverviewPage() {
                 </Link>
               </Button>
               <Button
-                asChild
                 variant="outline"
                 className="h-12 gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                onClick={() => {
+                  setShowManagement(true)
+                  router.replace("/?view=management")
+                }}
               >
-                <Link href="/hr">
-                  <Lock className="h-4 w-4" />
-                  จัดการสต๊อก
-                </Link>
+                <Lock className="h-4 w-4" />
+                จัดการสต๊อก
               </Button>
             </div>
           </div>
