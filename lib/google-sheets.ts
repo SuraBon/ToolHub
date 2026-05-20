@@ -8,12 +8,16 @@ import {
   headerRange,
   historyAppendRange,
   historyReadRange,
+  historyRowRange,
   stockAppendRange,
   stockReadRange,
   stockRowRange,
+  stockUsageRange,
 } from "@/lib/google-sheets-ranges"
 import { requireEnv } from "@/lib/env"
+import { toBaseUnit } from "@/lib/unit-conversion"
 import { Equipment } from "@/types"
+import type { RequisitionHistoryPayload } from "@/lib/validation"
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -210,13 +214,14 @@ export async function getRequisitionHistoryData() {
 
   const rows = response.data.values || []
 
-  return rows.map((row) => ({
+  return rows.map((row, index) => ({
+    rowNumber: index + 2,
     requisitionNumber: row[0] || "",
     date: row[1] || "",
     name: row[2] || "",
     department: row[3] || "",
     equipmentName: row[4] || "",
-    amount: row[5] || "",
+    amount: toNumber(row[5]),
     unit: row[6] || "",
   }))
 }
@@ -364,6 +369,150 @@ export async function appendRequisition(data: unknown[][]) {
       values: data,
     },
   })
+}
+
+function getHistoryEquipmentMatch(
+  equipmentData: Equipment[],
+  equipmentName: string
+) {
+  const normalizedName = equipmentName.trim().toLowerCase()
+  return equipmentData.find(
+    (equipment) => equipment.name.trim().toLowerCase() === normalizedName
+  )
+}
+
+export async function updateRequisitionHistory(
+  input: RequisitionHistoryPayload
+) {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
+  const [history, equipmentData] = await Promise.all([
+    getRequisitionHistoryData(),
+    getAllEquipmentData(),
+  ])
+  const existingHistory = history.find((row) => row.rowNumber === input.rowNumber)
+
+  if (!existingHistory) {
+    throw new Error("ไม่พบประวัติการเบิกที่ต้องการแก้ไข")
+  }
+
+  const previousEquipment = getHistoryEquipmentMatch(
+    equipmentData,
+    existingHistory.equipmentName
+  )
+
+  if (!previousEquipment) {
+    throw new Error(
+      `ไม่พบอุปกรณ์เดิมในสต๊อก: ${existingHistory.equipmentName}`
+    )
+  }
+
+  const nextEquipment = equipmentData.find(
+    (equipment) => equipment.id === input.equipmentId
+  )
+
+  if (!nextEquipment) {
+    throw new Error("ไม่พบอุปกรณ์ที่ต้องการบันทึกในประวัติ")
+  }
+
+  if (input.isMainUnit && (!nextEquipment.mainUnit || !nextEquipment.ratio)) {
+    throw new Error(`อุปกรณ์ ${nextEquipment.name} ไม่มีหน่วยใหญ่ให้เลือกเบิก`)
+  }
+
+  const previousWasMainUnit = Boolean(
+    previousEquipment.mainUnit &&
+      existingHistory.unit.trim() === previousEquipment.mainUnit.trim()
+  )
+  const previousBaseUnits = toBaseUnit(
+    existingHistory.amount,
+    previousWasMainUnit,
+    previousEquipment.ratio
+  )
+  const nextBaseUnits = toBaseUnit(
+    input.amount,
+    input.isMainUnit,
+    nextEquipment.ratio
+  )
+  const stockDeltas = new Map<string, number>()
+
+  stockDeltas.set(previousEquipment.id, -previousBaseUnits)
+  stockDeltas.set(
+    nextEquipment.id,
+    (stockDeltas.get(nextEquipment.id) || 0) + nextBaseUnits
+  )
+
+  const stockUpdates = Array.from(stockDeltas.entries()).map(
+    ([equipmentId, delta]) => {
+      const equipmentIndex = equipmentData.findIndex(
+        (equipment) => equipment.id === equipmentId
+      )
+      const equipment = equipmentData[equipmentIndex]
+
+      if (!equipment) {
+        throw new Error(`ไม่พบอุปกรณ์รหัส ${equipmentId}`)
+      }
+
+      const nextUsed = equipment.used + delta
+      const nextRemaining = equipment.remaining - delta
+
+      if (nextUsed < 0) {
+        throw new Error(
+          `ยอดเบิกไปแล้วของ ${equipment.name} น้อยกว่าจำนวนที่ต้องคืนจากประวัติเดิม`
+        )
+      }
+
+      if (nextRemaining < 0) {
+        throw new Error(
+          `สต๊อก ${equipment.name} ไม่เพียงพอสำหรับจำนวนที่แก้ไข`
+        )
+      }
+
+      return {
+        range: stockUsageRange(equipmentIndex + 2),
+        values: [[nextUsed, nextRemaining]],
+      }
+    }
+  )
+
+  const historyRow = [
+    existingHistory.requisitionNumber,
+    input.date,
+    input.name,
+    input.department,
+    nextEquipment.name,
+    input.amount,
+    input.isMainUnit && nextEquipment.mainUnit
+      ? nextEquipment.mainUnit
+      : nextEquipment.baseUnit,
+  ]
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: "USER_ENTERED",
+      data: [
+        ...stockUpdates,
+        {
+          range: historyRowRange(input.rowNumber),
+          values: [historyRow],
+        },
+      ],
+    },
+  })
+
+  return {
+    rowNumber: input.rowNumber,
+    requisitionNumber: existingHistory.requisitionNumber,
+    date: input.date,
+    name: input.name,
+    department: input.department,
+    equipmentName: nextEquipment.name,
+    amount: input.amount,
+    unit:
+      input.isMainUnit && nextEquipment.mainUnit
+        ? nextEquipment.mainUnit
+        : nextEquipment.baseUnit,
+  }
 }
 
 export async function updateStock(updates: Array<{ range: string; values: unknown[][] }>) {

@@ -23,7 +23,9 @@ import Image from "next/image"
 import QRCode from "qrcode"
 
 import { Button } from "@/components/ui/button"
+import { EquipmentCombobox } from "@/components/EquipmentCombobox"
 import { PaginationControls } from "@/components/PaginationControls"
+import { UnitSelector } from "@/components/UnitSelector"
 import {
   Card,
   CardContent,
@@ -60,6 +62,7 @@ const INVENTORY_PAGE_SIZE = 10
 const HISTORY_PAGE_SIZE = 12
 
 interface RequisitionHistory {
+  rowNumber: number
   requisitionNumber: string
   date: string
   name: string
@@ -129,6 +132,17 @@ type ImageEditorState = {
   offsetY: number
 }
 
+type RequisitionHistoryDraft = {
+  rowNumber: number
+  requisitionNumber: string
+  date: string
+  name: string
+  department: string
+  equipmentId: string
+  amount: string
+  isMainUnit: boolean
+}
+
 const emptyEquipmentDraft: EquipmentDraft = {
   id: "",
   image: "",
@@ -175,6 +189,7 @@ export default function HRDashboard() {
   const [history, setHistory] = React.useState<RequisitionHistory[]>([])
   const [loading, setLoading] = React.useState(false)
   const [savingEquipment, setSavingEquipment] = React.useState(false)
+  const [savingHistory, setSavingHistory] = React.useState(false)
   const [deletingEquipment, setDeletingEquipment] = React.useState(false)
   const [uploadingImage, setUploadingImage] = React.useState(false)
   const [imageEditor, setImageEditor] =
@@ -188,8 +203,11 @@ export default function HRDashboard() {
   const [activeTab, setActiveTab] =
     React.useState<"equipment" | "history" | "monitoring">("equipment")
   const [editDialogOpen, setEditDialogOpen] = React.useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false)
   const [editingEquipment, setEditingEquipment] =
     React.useState<Equipment | null>(null)
+  const [historyDraft, setHistoryDraft] =
+    React.useState<RequisitionHistoryDraft | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Equipment | null>(null)
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
@@ -202,6 +220,9 @@ export default function HRDashboard() {
   const computedTotalStock =
     (Number(equipmentDraft.stockBaseUnit) || 0) +
     (hasMainStockUnit ? (Number(equipmentDraft.stockMainUnit) || 0) * parsedRatio : 0)
+  const selectedHistoryEquipment = historyDraft
+    ? equipment.find((item) => item.id === historyDraft.equipmentId) || null
+    : null
 
   const filteredEquipment = React.useMemo(() => {
     return equipment.filter((item) =>
@@ -547,6 +568,92 @@ export default function HRDashboard() {
     }
   }
 
+  const openHistoryDialog = (item: RequisitionHistory) => {
+    const matchedEquipment = equipment.find(
+      (eq) =>
+        eq.name.trim().toLowerCase() === item.equipmentName.trim().toLowerCase()
+    )
+
+    setHistoryDraft({
+      rowNumber: item.rowNumber,
+      requisitionNumber: item.requisitionNumber,
+      date: item.date,
+      name: item.name,
+      department: item.department,
+      equipmentId: matchedEquipment?.id || "",
+      amount: String(item.amount),
+      isMainUnit: Boolean(
+        matchedEquipment?.mainUnit &&
+          item.unit.trim() === matchedEquipment.mainUnit.trim()
+      ),
+    })
+    setHistoryDialogOpen(true)
+  }
+
+  const updateHistoryDraft = (
+    field: keyof RequisitionHistoryDraft,
+    value: string | number | boolean
+  ) => {
+    setHistoryDraft((current) =>
+      current
+        ? {
+            ...current,
+            [field]: value,
+          }
+        : current
+    )
+  }
+
+  const handleHistoryEquipmentSelect = (equipmentId: string) => {
+    const nextEquipment = equipment.find((item) => item.id === equipmentId)
+
+    setHistoryDraft((current) =>
+      current
+        ? {
+            ...current,
+            equipmentId,
+            isMainUnit:
+              current.isMainUnit &&
+              Boolean(nextEquipment?.mainUnit && nextEquipment.ratio),
+          }
+        : current
+    )
+  }
+
+  const handleSaveHistory = async () => {
+    if (!historyDraft) return
+
+    setSavingHistory(true)
+    try {
+      await apiPut<{ success: boolean; history: RequisitionHistory }>(
+        "/api/requisition-history",
+        {
+          ...historyDraft,
+          amount: Number(historyDraft.amount),
+        }
+      )
+
+      toast({
+        title: "แก้ไขประวัติการเบิกแล้ว",
+        description: historyDraft.requisitionNumber,
+      })
+      setHistoryDialogOpen(false)
+      setHistoryDraft(null)
+      void fetchData(false)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "แก้ไขประวัติไม่สำเร็จ",
+        description:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถแก้ไขประวัติการเบิกได้",
+      })
+    } finally {
+      setSavingHistory(false)
+    }
+  }
+
   const handleDeleteEquipment = async () => {
     if (!deleteTarget) return
 
@@ -866,11 +973,14 @@ export default function HRDashboard() {
                           จำนวน
                         </TableHead>
                         <TableHead className="whitespace-nowrap text-center">หน่วย</TableHead>
+                        <TableHead className="whitespace-nowrap text-center">
+                          แก้ไข
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedHistory.map((item, index) => (
-                        <TableRow key={`${item.requisitionNumber}-${index}`}>
+                      {paginatedHistory.map((item) => (
+                        <TableRow key={`${item.requisitionNumber}-${item.rowNumber}`}>
                           <TableCell className="text-center font-semibold">
                             {item.requisitionNumber}
                           </TableCell>
@@ -882,6 +992,17 @@ export default function HRDashboard() {
                             {item.amount}
                           </TableCell>
                           <TableCell className="text-center">{item.unit}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openHistoryDialog(item)}
+                              aria-label="แก้ไขประวัติการเบิก"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1101,6 +1222,110 @@ export default function HRDashboard() {
                 )}
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={historyDialogOpen}
+          onOpenChange={(open) => {
+            setHistoryDialogOpen(open)
+            if (!open) {
+              setHistoryDraft(null)
+            }
+          }}
+        >
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>แก้ไขประวัติการเบิก</DialogTitle>
+              <DialogDescription>
+                แก้ไขรายการที่เบิกผิด ระบบจะปรับยอดเบิกไปแล้วและยอดคงเหลือให้ตามข้อมูลใหม่
+              </DialogDescription>
+            </DialogHeader>
+
+            {historyDraft ? (
+              <div className="grid gap-4 py-2 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>เลขที่ใบเบิก</Label>
+                  <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+                    {historyDraft.requisitionNumber}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="historyDate">วันที่เบิก</Label>
+                  <Input
+                    id="historyDate"
+                    value={historyDraft.date}
+                    onChange={(event) =>
+                      updateHistoryDraft("date", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="historyName">ชื่อ-นามสกุล</Label>
+                  <Input
+                    id="historyName"
+                    value={historyDraft.name}
+                    onChange={(event) =>
+                      updateHistoryDraft("name", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="historyDepartment">แผนก</Label>
+                  <Input
+                    id="historyDepartment"
+                    value={historyDraft.department}
+                    onChange={(event) =>
+                      updateHistoryDraft("department", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>อุปกรณ์</Label>
+                  <EquipmentCombobox
+                    equipment={equipment}
+                    value={historyDraft.equipmentId}
+                    onSelect={handleHistoryEquipmentSelect}
+                    disableUnavailable={false}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="historyAmount">จำนวน</Label>
+                  <Input
+                    id="historyAmount"
+                    type="number"
+                    min="1"
+                    value={historyDraft.amount}
+                    onChange={(event) =>
+                      updateHistoryDraft("amount", event.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>หน่วย</Label>
+                  <UnitSelector
+                    equipment={selectedHistoryEquipment}
+                    value={historyDraft.isMainUnit}
+                    onValueChange={(value) =>
+                      updateHistoryDraft("isMainUnit", value)
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setHistoryDialogOpen(false)}
+                disabled={savingHistory}
+              >
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSaveHistory} disabled={savingHistory}>
+                {savingHistory ? "กำลังบันทึก..." : "บันทึกประวัติ"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

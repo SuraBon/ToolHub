@@ -74,3 +74,24 @@ export function validateRequisitionPayload(input: unknown) {
 export function validateEquipmentPayload(input: unknown) {
   return EquipmentPayloadSchema.parse(input)
 }
+
+export const RequisitionHistoryPayloadSchema = z.object({
+  rowNumber: z.coerce
+    .number()
+    .int("แถวประวัติต้องเป็นตัวเลขจำนวนเต็ม")
+    .min(2, "แถวประวัติไม่ถูกต้อง"),
+  date: z.string().trim().min(1, "กรุณาระบุวันที่เบิก"),
+  name: z.string().trim().min(1, "กรุณากรอกชื่อ"),
+  department: z.string().trim().min(1, "กรุณากรอกแผนก"),
+  equipmentId: z.string().trim().min(1, "กรุณาเลือกอุปกรณ์"),
+  amount: positiveFiniteNumber,
+  isMainUnit: z.boolean().default(false),
+})
+
+export type RequisitionHistoryPayload = z.infer<
+  typeof RequisitionHistoryPayloadSchema
+>
+
+export function validateRequisitionHistoryPayload(input: unknown) {
+  return RequisitionHistoryPayloadSchema.parse(input)
+}

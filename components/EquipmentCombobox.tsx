@@ -26,6 +26,7 @@ interface EquipmentComboboxProps {
   equipment: Equipment[]
   value: string
   onSelect: (value: string) => void
+  disableUnavailable?: boolean
 }
 
 function EquipmentThumb({
@@ -65,15 +66,21 @@ export function EquipmentCombobox({
   equipment,
   value,
   onSelect,
+  disableUnavailable = true,
 }: EquipmentComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [page, setPage] = React.useState(1)
   const selectedEquipment = equipment.find((eq) => eq.id === value)
-  const filteredEquipment = React.useMemo(
-    () => equipment.filter((eq) => equipmentMatchesSearch(eq, query)),
-    [equipment, query]
-  )
+  const filteredEquipment = React.useMemo(() => {
+    return equipment
+      .filter((eq) => equipmentMatchesSearch(eq, query))
+      .sort((a, b) => {
+        const availableDiff = Number(b.remaining > 0) - Number(a.remaining > 0)
+        if (availableDiff !== 0) return availableDiff
+        return a.name.localeCompare(b.name, "th")
+      })
+  }, [equipment, query])
   const { currentPage, items: paginatedEquipment } = paginateItems(
     filteredEquipment,
     page,
@@ -130,7 +137,7 @@ export function EquipmentCombobox({
                 <div className="grid max-h-[58dvh] min-h-0 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
                   {paginatedEquipment.map((eq) => {
                     const selected = value === eq.id
-                    const unavailable = eq.remaining <= 0
+                    const unavailable = disableUnavailable && eq.remaining <= 0
 
                     return (
                       <button

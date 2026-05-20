@@ -64,6 +64,10 @@ export function historyAppendRange() {
   return `${HISTORY_SHEET_NAME}!A:G`
 }
 
+export function historyRowRange(rowIndex: number) {
+  return `${HISTORY_SHEET_NAME}!A${rowIndex}:G${rowIndex}`
+}
+
 export function auditLogAppendRange() {
   return `${AUDIT_LOG_SHEET_NAME}!A:E`
 }
