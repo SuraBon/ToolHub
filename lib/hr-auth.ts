@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 import { jsonError } from "@/lib/api-response"
 
 const HR_SESSION_COOKIE = "hr_session"
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
+export const SESSION_TTL_MS = 60 * 60 * 1000
 
 type HrSessionPayload = {
   exp: number
@@ -48,9 +48,9 @@ function signaturesMatch(left: string, right: string) {
   )
 }
 
-function createHrSessionToken() {
+export function createHrSessionToken(now = Date.now()) {
   const payload: HrSessionPayload = {
-    exp: Date.now() + SESSION_TTL_MS,
+    exp: now + SESSION_TTL_MS,
     nonce: crypto.randomUUID(),
   }
   const encodedPayload = base64UrlEncode(JSON.stringify(payload))
@@ -58,7 +58,7 @@ function createHrSessionToken() {
   return `${encodedPayload}.${sign(encodedPayload)}`
 }
 
-function verifyHrSessionToken(token: string | undefined) {
+export function verifyHrSessionToken(token: string | undefined, now = Date.now()) {
   if (!token) return false
 
   const [encodedPayload, signature, extra] = token.split(".")
@@ -74,7 +74,7 @@ function verifyHrSessionToken(token: string | undefined) {
     return false
   }
 
-  return Number.isFinite(payload.exp) && payload.exp > Date.now()
+  return Number.isFinite(payload.exp) && payload.exp > now
 }
 
 export async function hasHrSession() {
@@ -99,6 +99,10 @@ export function setHrSessionCookie(response: NextResponse) {
   })
 
   return response
+}
+
+export function refreshHrSessionCookie(response: NextResponse) {
+  return setHrSessionCookie(response)
 }
 
 export function clearHrSessionCookie(response: NextResponse) {

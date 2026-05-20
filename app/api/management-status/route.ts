@@ -1,7 +1,7 @@
 import { jsonData, jsonError } from "@/lib/api-response"
 import { getEnvChecks, getMissingRequiredEnv, hasEnv } from "@/lib/env"
 import { getAllEquipmentData, getRequisitionHistoryData } from "@/lib/google-sheets"
-import { requireHrSession } from "@/lib/hr-auth"
+import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import { LOW_STOCK_THRESHOLD } from "@/lib/equipment-utils"
 
 export const dynamic = "force-dynamic"
@@ -24,14 +24,14 @@ export async function GET() {
   }
 
   if (missingRequiredEnv.length > 0) {
-    return jsonData({
+    return refreshHrSessionCookie(jsonData({
       ...baseStatus,
       ok: false,
       googleSheetsReady: false,
       error: `ยังไม่ได้ตั้งค่า ${missingRequiredEnv.join(", ")}`,
       inventory: null,
       history: null,
-    })
+    }))
   }
 
   try {
@@ -44,7 +44,7 @@ export async function GET() {
       (item) => item.remaining > 0 && item.remaining <= LOW_STOCK_THRESHOLD
     ).length
 
-    return jsonData({
+    return refreshHrSessionCookie(jsonData({
       ...baseStatus,
       ok: true,
       googleSheetsReady: true,
@@ -58,7 +58,7 @@ export async function GET() {
       history: {
         total: history.length,
       },
-    })
+    }))
   } catch (error) {
     console.error("Error checking management status:", error)
     return jsonError("ไม่สามารถตรวจสอบสถานะระบบได้", 500)

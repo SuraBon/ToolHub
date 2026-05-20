@@ -2,7 +2,7 @@ import { put } from "@vercel/blob"
 
 import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
-import { requireHrSession } from "@/lib/hr-auth"
+import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import { generateSafeImageName, validateImageFile } from "@/lib/image-upload"
 import { hasEnv } from "@/lib/env"
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       detail: `อัปโหลดรูปภาพ ${safeName}`,
     })
 
-    return jsonSuccess({ url: blob.url })
+    return refreshHrSessionCookie(jsonSuccess({ url: blob.url }))
   } catch (error) {
     console.error("Error uploading equipment image:", error)
     return jsonError("ไม่สามารถอัปโหลดรูปภาพได้", 500)

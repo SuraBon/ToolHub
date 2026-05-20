@@ -6,6 +6,7 @@ import {
   clearHrSessionCookie,
   hasHrSession,
   isHrPasswordConfigured,
+  refreshHrSessionCookie,
   setHrSessionCookie,
 } from "@/lib/hr-auth"
 
@@ -20,7 +21,10 @@ function getClientKey(request: Request) {
 }
 
 export async function GET() {
-  return jsonSuccess({ authenticated: await hasHrSession() })
+  const authenticated = await hasHrSession()
+  const response = jsonSuccess({ authenticated })
+
+  return authenticated ? refreshHrSessionCookie(response) : response
 }
 
 export async function POST(request: Request) {

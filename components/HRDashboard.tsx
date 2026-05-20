@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/table"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
-import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/client-api"
+import { ApiError, apiDelete, apiGet, apiPost, apiPut } from "@/lib/client-api"
 import {
   type StockFilter,
   equipmentMatchesFilter,
@@ -77,6 +77,9 @@ import type { Equipment } from "@/types"
 
 const INVENTORY_PAGE_SIZE = 10
 const HISTORY_PAGE_SIZE = 12
+const HR_IDLE_TIMEOUT_MS = 60 * 60 * 1000
+const HR_SESSION_REFRESH_DEBOUNCE_MS = 60 * 1000
+const HR_SESSION_REFRESH_DELAY_MS = 750
 
 interface RequisitionHistory {
   rowNumber: number
@@ -261,6 +264,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(
     null
   )
+  const idleTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastRefreshAtRef = React.useRef(0)
   const { toast } = useToast()
   const parsedRatio = Number(equipmentDraft.ratio) || 0
   const hasMainStockUnit = Boolean(equipmentDraft.mainUnit.trim() && parsedRatio > 0)
@@ -302,6 +308,109 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     setRequestFormUrl(`${window.location.origin}/form`)
   }, [])
 
+  const clearSessionTimers = React.useCallback(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current)
+      idleTimeoutRef.current = null
+    }
+
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+      refreshTimeoutRef.current = null
+    }
+  }, [])
+
+  const expireHrSession = React.useCallback(
+    (showIdleMessage = false) => {
+      clearSessionTimers()
+      setIsAuthenticated(false)
+      setCheckingAuth(false)
+      setPassword("")
+      setEditDialogOpen(false)
+      setHistoryDialogOpen(false)
+      setDeleteTarget(null)
+      setCancelHistoryTarget(null)
+      setImageEditor(null)
+
+      if (showIdleMessage) {
+        toast({
+          title: "ออกจากระบบแล้ว",
+          description: "ออกจากระบบแล้ว เนื่องจากไม่มีการใช้งานเกิน 1 ชั่วโมง",
+        })
+      }
+    },
+    [clearSessionTimers, toast]
+  )
+
+  const handleAuthenticatedError = React.useCallback(
+    (error: unknown) => {
+      if (error instanceof ApiError && error.status === 401) {
+        expireHrSession(true)
+        return true
+      }
+
+      return false
+    },
+    [expireHrSession]
+  )
+
+  const refreshHrSession = React.useCallback(async () => {
+    try {
+      const result = await apiGet<AuthResponse>("/api/hr-auth", {
+        cache: "no-store",
+      })
+
+      if (result.authenticated) {
+        lastRefreshAtRef.current = Date.now()
+        return
+      }
+
+      expireHrSession(true)
+    } catch (error) {
+      if (!handleAuthenticatedError(error)) {
+        console.error("Error refreshing HR session:", error)
+      }
+    }
+  }, [expireHrSession, handleAuthenticatedError])
+
+  const handleIdleLogout = React.useCallback(async () => {
+    try {
+      await apiDelete<AuthResponse>("/api/hr-auth")
+    } catch (error) {
+      console.error("Error clearing idle HR session:", error)
+    } finally {
+      expireHrSession(true)
+    }
+  }, [expireHrSession])
+
+  const resetIdleTimer = React.useCallback(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current)
+    }
+
+    idleTimeoutRef.current = setTimeout(() => {
+      void handleIdleLogout()
+    }, HR_IDLE_TIMEOUT_MS)
+  }, [handleIdleLogout])
+
+  const handleUserActivity = React.useCallback(() => {
+    resetIdleTimer()
+
+    const now = Date.now()
+    if (now - lastRefreshAtRef.current < HR_SESSION_REFRESH_DEBOUNCE_MS) {
+      return
+    }
+
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+    }
+
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshTimeoutRef.current = null
+      void refreshHrSession()
+    }, HR_SESSION_REFRESH_DELAY_MS)
+  }, [refreshHrSession, resetIdleTimer])
+
   React.useEffect(() => {
     if (!requestFormUrl) return
 
@@ -340,10 +449,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         })
         setSystemStatus(status)
       } catch (error) {
+        if (handleAuthenticatedError(error)) return
         console.error("Error fetching system status:", error)
         setSystemStatus(null)
       }
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       console.error("Error fetching HR data:", error)
       toast({
         variant: "destructive",
@@ -355,7 +466,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         setLoading(false)
       }
     }
-  }, [toast])
+  }, [handleAuthenticatedError, toast])
 
   React.useEffect(() => {
     let cancelled = false
@@ -387,6 +498,43 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     }
   }, [fetchData])
 
+  React.useEffect(() => {
+    if (!isAuthenticated || checkingAuth) {
+      clearSessionTimers()
+      return
+    }
+
+    lastRefreshAtRef.current = Date.now()
+    resetIdleTimer()
+
+    const events: Array<keyof WindowEventMap> = [
+      "click",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "mousemove",
+    ]
+
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, handleUserActivity, {
+        passive: eventName !== "keydown",
+      })
+    })
+
+    return () => {
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, handleUserActivity)
+      })
+      clearSessionTimers()
+    }
+  }, [
+    checkingAuth,
+    clearSessionTimers,
+    handleUserActivity,
+    isAuthenticated,
+    resetIdleTimer,
+  ])
+
   const handleLogin = async () => {
     try {
       const result = await apiPost<AuthResponse>("/api/hr-auth", { password })
@@ -412,6 +560,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       console.error("Error clearing HR session:", error)
     }
 
+    clearSessionTimers()
     setIsAuthenticated(false)
     if (onBackToStock) {
       onBackToStock()
@@ -582,6 +731,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       })
       resetImageEditor()
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
         title: "อัปโหลดไม่สำเร็จ",
@@ -630,6 +780,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setEquipmentDraft(emptyEquipmentDraft)
       void fetchData(false)
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
         title: "บันทึกไม่สำเร็จ",
@@ -714,6 +865,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setHistoryDraft(null)
       void fetchData(false)
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
         title: "แก้ไขประวัติไม่สำเร็จ",
@@ -745,6 +897,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setCancelHistoryTarget(null)
       void fetchData(false)
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
         title: "ยกเลิกการเบิกไม่สำเร็จ",
@@ -777,6 +930,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setDeleteTarget(null)
       void fetchData(false)
     } catch (error) {
+      if (handleAuthenticatedError(error)) return
       toast({
         variant: "destructive",
         title: "ลบไม่สำเร็จ",

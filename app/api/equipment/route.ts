@@ -8,7 +8,7 @@ import {
   getAvailableEquipmentData,
   updateEquipment,
 } from "@/lib/google-sheets"
-import { requireHrSession } from "@/lib/hr-auth"
+import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import { validateEquipmentPayload } from "@/lib/validation"
 
 export async function GET(request: Request) {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       equipmentName: equipment.name,
     })
 
-    return jsonSuccess({ equipment }, 201)
+    return refreshHrSessionCookie(jsonSuccess({ equipment }, 201))
   } catch (error) {
     console.error("Error creating equipment:", error)
     return jsonError(formatApiErrorMessage(error, "ไม่สามารถเพิ่มอุปกรณ์ได้"), 400)
@@ -70,7 +70,7 @@ export async function PUT(request: Request) {
       equipmentName: equipment.name,
     })
 
-    return jsonSuccess({ equipment })
+    return refreshHrSessionCookie(jsonSuccess({ equipment }))
   } catch (error) {
     console.error("Error updating equipment:", error)
     return jsonError(formatApiErrorMessage(error, "ไม่สามารถแก้ไขอุปกรณ์ได้"), 400)
@@ -97,7 +97,7 @@ export async function DELETE(request: Request) {
       equipmentName: equipment.name,
     })
 
-    return jsonSuccess({})
+    return refreshHrSessionCookie(jsonSuccess({}))
   } catch (error) {
     console.error("Error deleting equipment:", error)
     return jsonError(formatApiErrorMessage(error, "ไม่สามารถลบอุปกรณ์ได้"), 400)

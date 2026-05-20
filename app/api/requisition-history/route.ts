@@ -10,7 +10,7 @@ import {
   getRequisitionHistoryData,
   updateRequisitionHistory,
 } from "@/lib/google-sheets"
-import { requireHrSession } from "@/lib/hr-auth"
+import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import {
   validateRequisitionHistoryCancelPayload,
   validateRequisitionHistoryPayload,
@@ -26,7 +26,7 @@ export async function GET() {
 
     const history = await getRequisitionHistoryData()
 
-    return jsonData(history)
+    return refreshHrSessionCookie(jsonData(history))
   } catch (error) {
     console.error("Error fetching requisition history:", error)
     return jsonError("ไม่สามารถดึงประวัติการเบิกได้", 500)
@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
       equipmentName: history.equipmentName,
     })
 
-    return jsonSuccess({ history })
+    return refreshHrSessionCookie(jsonSuccess({ history }))
   } catch (error) {
     console.error("Error updating requisition history:", error)
     return jsonError(
@@ -75,7 +75,7 @@ export async function DELETE(request: Request) {
       equipmentName: history.equipmentName,
     })
 
-    return jsonSuccess({ history })
+    return refreshHrSessionCookie(jsonSuccess({ history }))
   } catch (error) {
     console.error("Error canceling requisition history:", error)
     return jsonError(
