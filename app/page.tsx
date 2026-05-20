@@ -5,7 +5,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
-  ArrowRight,
   Check,
   ClipboardList,
   Package,
@@ -36,7 +35,6 @@ import {
   equipmentMatchesFilter,
   equipmentMatchesSearch,
   formatRemainingQuantity,
-  getStockStatus,
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
@@ -167,17 +165,7 @@ function StockOverviewContent() {
                 ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
               </p>
             </div>
-            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 lg:flex">
-              <Button
-                asChild
-                className="h-12 w-full gap-2 rounded-2xl bg-blue-600 px-5 text-base font-semibold shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-300"
-              >
-                <Link href="/form">
-                  <ClipboardList className="h-4 w-4" />
-                  เปิดฟอร์มเบิก
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="grid w-full gap-3 sm:w-auto lg:flex">
               <Button
                 variant="outline"
                 className="h-12 w-full gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
@@ -319,39 +307,34 @@ function StockOverviewContent() {
                 <div className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {paginatedEquipment.map((item) => {
-                      const status = getStockStatus(item)
                       const selected = selectedEquipmentIdSet.has(item.id)
                       const unavailable = item.remaining <= 0
 
                       return (
                         <div
                           key={item.id}
-                          className="relative grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                          className="grid grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md"
                         >
-                          <span
-                            className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${status.className}`}
-                          >
-                            {status.label}
-                          </span>
                           <EquipmentImage item={item} size={64} />
-                          <div className="flex min-w-0 flex-col gap-3 pr-24">
+                          <div className="flex min-w-0 flex-col justify-center gap-2">
                             <p className="truncate text-sm font-semibold text-slate-950">
                               {item.name}
                             </p>
                             <p className="text-lg font-bold text-slate-950">
                               {formatRemainingQuantity(item)}
                             </p>
+                          </div>
+                          <div className="flex justify-end">
                             {unavailable ? (
                               <Button
                                 type="button"
                                 disabled
                                 variant="outline"
-                                className="h-10 w-full rounded-xl"
+                                className="h-10 w-full rounded-xl px-3"
                               >
                                 หมดสต๊อก
                               </Button>
                             ) : selected ? (
-                              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_44px]">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -361,23 +344,12 @@ function StockOverviewContent() {
                                   <Check className="h-4 w-4" />
                                   เลือกแล้ว
                                 </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeFromSelection(item.id)}
-                                  className="hidden h-10 w-10 rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 sm:inline-flex"
-                                >
-                                  <X className="h-4 w-4" />
-                                  <span className="sr-only">เอาออก</span>
-                                </Button>
-                              </div>
                             ) : (
                               <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => addToSelection(item)}
-                                className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                               >
                                 <ShoppingCart className="h-4 w-4" />
                                 เพิ่มในรายการ
