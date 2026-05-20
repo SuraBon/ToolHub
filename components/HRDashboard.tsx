@@ -994,22 +994,24 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 />
               </div>
             </div>
-            <MobileActionButton
-              type="button"
-              onClick={handleLogin}
-              className="h-12 w-full text-base"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              เข้าสู่ระบบจัดการคลังอุปกรณ์
-            </MobileActionButton>
-            {onBackToStock ? (
-              <BackToStockButton
-                onBack={onBackToStock}
-                className="h-11 w-full gap-2 rounded-xl border-slate-200 bg-white/90 font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              />
-            ) : (
-              <BackToStockButton className="h-11 w-full gap-2 rounded-xl border-slate-200 bg-white/90 font-semibold shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" />
-            )}
+            <div className="grid w-full gap-3 sm:justify-items-center">
+              <MobileActionButton
+                type="button"
+                onClick={handleLogin}
+                className="h-11 w-full max-w-80 px-4 text-sm sm:w-full"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                เข้าสู่ระบบจัดการคลังอุปกรณ์
+              </MobileActionButton>
+              {onBackToStock ? (
+                <BackToStockButton
+                  onBack={onBackToStock}
+                  className="h-11 w-full max-w-80 gap-2 rounded-xl border-slate-200 bg-white/90 px-4 text-sm font-medium shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 sm:w-full"
+                />
+              ) : (
+                <BackToStockButton className="h-11 w-full max-w-80 gap-2 rounded-xl border-slate-200 bg-white/90 px-4 text-sm font-medium shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 sm:w-full" />
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>

@@ -300,11 +300,11 @@ function StockOverviewContent() {
                           className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)]"
                         >
                           <EquipmentImage item={item} size={64} />
-                          <div className="flex min-w-0 flex-col justify-center gap-1.5">
-                            <p className="truncate text-[13px] font-semibold leading-5 text-slate-950 sm:text-sm">
+                          <div className="flex min-w-0 flex-col justify-center gap-1">
+                            <p className="truncate text-xs font-semibold leading-5 text-slate-950 sm:text-[13px]">
                               {item.name}
                             </p>
-                            <p className="text-base font-bold leading-6 text-slate-950 sm:text-lg">
+                            <p className="text-sm font-normal leading-5 text-slate-950 sm:text-base">
                               {formatRemainingQuantity(item)}
                             </p>
                           </div>
@@ -314,7 +314,7 @@ function StockOverviewContent() {
                                 type="button"
                                 disabled
                                 variant="outline"
-                                className="h-10 w-full rounded-xl px-3"
+                                className="h-10 w-full rounded-xl px-3 text-xs sm:text-sm"
                               >
                                 หมดสต๊อก
                               </MobileActionButton>
@@ -323,7 +323,7 @@ function StockOverviewContent() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => removeFromSelection(item.id)}
-                                className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                                className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 sm:text-sm"
                               >
                                 <Check className="h-4 w-4" />
                                 เลือกไว้แล้ว
@@ -333,7 +333,7 @@ function StockOverviewContent() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => addToSelection(item)}
-                                className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800 sm:text-sm"
                               >
                                 <ShoppingCart className="h-4 w-4" />
                                 เพิ่มรายการ
