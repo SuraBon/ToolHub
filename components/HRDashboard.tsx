@@ -29,6 +29,7 @@ import { ConfirmActionDialog } from "@/components/ConfirmActionDialog"
 import { EquipmentCombobox } from "@/components/EquipmentCombobox"
 import { MobileActionButton } from "@/components/MobileActionButton"
 import { PaginationControls } from "@/components/PaginationControls"
+import { QuantityStepper } from "@/components/QuantityStepper"
 import { UnitSelector } from "@/components/UnitSelector"
 import {
   Card,
@@ -1644,13 +1645,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="historyAmount">จำนวน</Label>
-                  <Input
+                  <QuantityStepper
                     id="historyAmount"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={historyDraft.amount}
-                    onChange={(event) =>
-                      updateHistoryDraft("amount", event.target.value)
+                    onValueChange={(value) =>
+                      updateHistoryDraft("amount", value)
                     }
                   />
                 </div>
@@ -1899,18 +1899,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   จำนวนหน่วยใหญ่
                   {equipmentDraft.mainUnit ? ` (${equipmentDraft.mainUnit})` : ""}
                 </Label>
-                <Input
+                <QuantityStepper
                   id="stockMainUnit"
-                  type="number"
-                  min="0"
+                  min={0}
                   value={equipmentDraft.stockMainUnit}
-                  onChange={(event) =>
-                    updateDraft("stockMainUnit", event.target.value)
-                  }
+                  onValueChange={(value) => updateDraft("stockMainUnit", value)}
                   disabled={!hasMainStockUnit}
-                  placeholder={
-                    hasMainStockUnit ? "0" : "กรอกหน่วยใหญ่และอัตราส่วนก่อน"
-                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1918,14 +1912,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   จำนวนหน่วยย่อย
                   {equipmentDraft.baseUnit ? ` (${equipmentDraft.baseUnit})` : ""}
                 </Label>
-                <Input
+                <QuantityStepper
                   id="stockBaseUnit"
-                  type="number"
-                  min="0"
+                  min={0}
                   value={equipmentDraft.stockBaseUnit}
-                  onChange={(event) =>
-                    updateDraft("stockBaseUnit", event.target.value)
-                  }
+                  onValueChange={(value) => updateDraft("stockBaseUnit", value)}
                 />
               </div>
               <div className="space-y-2">
@@ -1941,12 +1932,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               {editingEquipment ? (
                 <div className="space-y-2">
                   <Label htmlFor="used">เบิกไปแล้ว</Label>
-                  <Input
+                  <QuantityStepper
                     id="used"
-                    type="number"
-                    min="0"
+                    min={0}
                     value={equipmentDraft.used}
-                    onChange={(event) => updateDraft("used", event.target.value)}
+                    onValueChange={(value) => updateDraft("used", value)}
                   />
                 </div>
               ) : null}

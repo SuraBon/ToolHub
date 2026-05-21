@@ -9,6 +9,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form"
 
 import { EquipmentCombobox } from "@/components/EquipmentCombobox"
 import { MobileActionButton } from "@/components/MobileActionButton"
+import { QuantityStepper } from "@/components/QuantityStepper"
 import { UnitSelector } from "@/components/UnitSelector"
 import {
   Form,
@@ -288,13 +289,13 @@ export function RequisitionForm({
                               <FormItem>
                                 <FormLabel>จำนวน</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    {...field}
-                                    onChange={(event) =>
+                                  <QuantityStepper
+                                    id={`items.${index}.amount`}
+                                    min={1}
+                                    value={field.value}
+                                    onValueChange={(value) =>
                                       field.onChange(
-                                        parseInt(event.target.value) || 0
+                                        value === "" ? "" : Number(value)
                                       )
                                     }
                                   />
