@@ -47,15 +47,15 @@ function SelectedEquipmentImage({
         alt={equipment.name}
         width={72}
         height={72}
-        className="h-16 w-16 rounded-xl object-cover shadow-sm sm:h-20 sm:w-20"
+        className="h-12 w-12 rounded-lg object-cover shadow-sm sm:h-20 sm:w-20 sm:rounded-xl"
         unoptimized
       />
     )
   }
 
   return (
-    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 sm:h-20 sm:w-20">
-      <Package className="h-8 w-8 text-blue-600" />
+    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 sm:h-20 sm:w-20 sm:rounded-xl">
+      <Package className="h-6 w-6 text-blue-600 sm:h-8 sm:w-8" />
     </div>
   )
 }
@@ -245,12 +245,12 @@ export function RequisitionForm({
                   transition={{ duration: 0.3 }}
                   className="rounded-xl border bg-card p-4 transition-shadow hover:shadow-md"
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="flex gap-3 sm:gap-4 sm:items-start">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.1 }}
-                      className="flex shrink-0 justify-center"
+                      className="flex shrink-0 justify-center pt-0.5 sm:pt-0"
                     >
                       <SelectedEquipmentImage equipment={selectedEquipment} />
                     </motion.div>
@@ -259,8 +259,8 @@ export function RequisitionForm({
                         control={form.control}
                         name={`items.${index}.equipmentId`}
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>อุปกรณ์</FormLabel>
+                          <FormItem className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1.5 space-y-0 max-[360px]:block max-[360px]:space-y-2 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4">
+                            <FormLabel className="pt-2.5 max-[360px]:pt-0">อุปกรณ์</FormLabel>
                             <FormControl>
                               <EquipmentCombobox
                                 equipment={equipment}
@@ -270,7 +270,7 @@ export function RequisitionForm({
                                 }
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="col-start-2 max-[360px]:col-start-auto" />
                           </FormItem>
                         )}
                       />
@@ -280,14 +280,14 @@ export function RequisitionForm({
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                          className="space-y-3 sm:space-y-4"
                         >
                           <FormField
                             control={form.control}
                             name={`items.${index}.amount`}
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>จำนวน</FormLabel>
+                              <FormItem className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1.5 space-y-0 max-[360px]:block max-[360px]:space-y-2 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4">
+                                <FormLabel className="pt-2.5 max-[360px]:pt-0">จำนวน</FormLabel>
                                 <FormControl>
                                   <QuantityStepper
                                     id={`items.${index}.amount`}
@@ -300,7 +300,7 @@ export function RequisitionForm({
                                     }
                                   />
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage className="col-start-2 max-[360px]:col-start-auto" />
                               </FormItem>
                             )}
                           />
@@ -308,8 +308,8 @@ export function RequisitionForm({
                             control={form.control}
                             name={`items.${index}.isMainUnit`}
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>หน่วย</FormLabel>
+                              <FormItem className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1.5 space-y-0 max-[360px]:block max-[360px]:space-y-2 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4">
+                                <FormLabel className="pt-2.5 max-[360px]:pt-0">หน่วย</FormLabel>
                                 <FormControl>
                                   <div className="space-y-1.5">
                                     <UnitSelector
@@ -329,7 +329,7 @@ export function RequisitionForm({
                                     )}
                                   </div>
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage className="col-start-2 max-[360px]:col-start-auto" />
                               </FormItem>
                             )}
                           />

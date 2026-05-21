@@ -63,7 +63,7 @@ export function QuantityStepper({
   return (
     <div
       className={cn(
-        "inline-flex h-11 w-full max-w-40 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 text-white shadow-sm ring-offset-background transition focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:opacity-50",
+        "inline-flex h-10 w-full max-w-36 overflow-hidden rounded-md border border-input bg-background text-foreground ring-offset-background transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
         disabled && "opacity-50",
         className
       )}
@@ -77,7 +77,7 @@ export function QuantityStepper({
         onChange={handleInputChange}
         disabled={disabled}
         className={cn(
-          "min-w-0 flex-1 bg-transparent px-3 text-center text-base font-semibold outline-none placeholder:text-white/50 disabled:cursor-not-allowed",
+          "min-w-0 flex-1 bg-transparent px-3 text-center text-sm font-medium outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed",
           inputClassName
         )}
       />
@@ -85,7 +85,7 @@ export function QuantityStepper({
         type="button"
         onClick={() => updateByStep(-1)}
         disabled={canDecrease}
-        className="flex w-11 shrink-0 items-center justify-center border-l border-white/15 text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:text-white/30"
+        className="flex w-10 shrink-0 items-center justify-center border-l border-input text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="ลดจำนวน"
       >
         <Minus className="h-4 w-4" />
@@ -94,7 +94,7 @@ export function QuantityStepper({
         type="button"
         onClick={() => updateByStep(1)}
         disabled={canIncrease}
-        className="flex w-11 shrink-0 items-center justify-center border-l border-white/15 text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:text-white/30"
+        className="flex w-10 shrink-0 items-center justify-center border-l border-input text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="เพิ่มจำนวน"
       >
         <Plus className="h-4 w-4" />
