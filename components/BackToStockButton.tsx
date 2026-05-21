@@ -16,12 +16,22 @@ export function BackToStockButton({
   ...props
 }: BackToStockButtonProps) {
   const router = useRouter()
+  const handleBack = () => {
+    onBack?.()
+    router.replace("/")
+
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/" || window.location.search) {
+        window.location.assign("/")
+      }
+    }, 150)
+  }
 
   return (
     <MobileActionButton
       type="button"
       variant={variant}
-      onClick={onBack || (() => router.push("/"))}
+      onClick={handleBack}
       {...props}
     >
       <ArrowLeft className="h-4 w-4" />
