@@ -310,11 +310,23 @@ export function RequisitionForm({
                               <FormItem>
                                 <FormLabel>หน่วย</FormLabel>
                                 <FormControl>
-                                  <UnitSelector
-                                    equipment={selectedEquipment}
-                                    value={field.value}
-                                    onValueChange={field.onChange}
-                                  />
+                                  <div className="space-y-1.5">
+                                    <UnitSelector
+                                      equipment={selectedEquipment}
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                    />
+                                    {selectedEquipment.mainUnit && selectedEquipment.ratio && (
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70" />
+                                        <span>
+                                          1 {selectedEquipment.mainUnit} ={" "}
+                                          {selectedEquipment.ratio}{" "}
+                                          {selectedEquipment.baseUnit}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
