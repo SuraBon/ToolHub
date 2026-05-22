@@ -143,12 +143,12 @@ function FormPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
         <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <CardHeader className="border-b border-slate-100 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <Package className="h-5 w-5 text-blue-600" />
                   ฟอร์มเบิกอุปกรณ์
                 </CardTitle>
@@ -156,10 +156,10 @@ function FormPageContent() {
                   กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
                 </CardDescription>
               </div>
-              <BackToStockButton className="h-11 w-full gap-2 rounded-xl sm:w-auto" />
+              <BackToStockButton className="h-10 w-full gap-2 rounded-xl sm:w-auto" />
             </div>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 pt-5 sm:p-6 sm:pt-5">
             {loading ? (
               <div className="space-y-4">
                 <Skeleton className="h-10 w-full" />
@@ -186,9 +186,9 @@ export default function FormPage() {
     <React.Suspense
       fallback={
         <main className="min-h-screen bg-slate-50">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
             <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100">
+              <CardHeader className="border-b border-slate-100 p-4 sm:p-5">
                 <Skeleton className="h-8 w-56" />
                 <Skeleton className="mt-2 h-4 w-full max-w-md" />
               </CardHeader>

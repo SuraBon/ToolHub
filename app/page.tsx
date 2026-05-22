@@ -137,14 +137,14 @@ function StockOverviewContent() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] pb-24 text-slate-950 md:pb-0">
       <Toaster />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-        <header className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-xl shadow-slate-200/70 backdrop-blur lg:p-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
+        <header className="rounded-xl border border-white/70 bg-white/75 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 คลังอุปกรณ์
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+              <p className="mt-1 max-w-2xl text-sm text-slate-600">
                 ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
               </p>
             </div>
@@ -152,7 +152,7 @@ function StockOverviewContent() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 w-full gap-2 rounded-2xl border-slate-200 bg-white/95 px-5 text-base font-semibold shadow-md shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="h-10 w-full gap-2 rounded-xl border-slate-200 bg-white/95 px-4 text-sm font-semibold shadow-sm shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 onClick={() => {
                   setShowManagement(true)
                   router.replace("/?view=management")
@@ -382,8 +382,8 @@ export default function StockOverviewPage() {
     <React.Suspense
       fallback={
         <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] text-slate-950">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-            <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
+            <Skeleton className="h-24 w-full rounded-xl" />
             <div className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-6">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, index) => (

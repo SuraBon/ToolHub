@@ -95,6 +95,15 @@ interface RequisitionHistory {
   unit: string
 }
 
+interface RequisitionHistoryGroup {
+  key: string
+  requisitionNumber: string
+  date: string
+  name: string
+  department: string
+  items: RequisitionHistory[]
+}
+
 type AuthResponse = {
   success: boolean
   authenticated: boolean
@@ -197,6 +206,40 @@ function historyMatchesSearch(item: RequisitionHistory, query: string) {
     .includes(normalizedQuery)
 }
 
+function groupRequisitionHistory(items: RequisitionHistory[]) {
+  const groups = new Map<string, RequisitionHistoryGroup>()
+
+  items.forEach((item) => {
+    const key = [
+      item.requisitionNumber,
+      item.date,
+      item.name,
+      item.department,
+    ].join("|")
+    const existingGroup = groups.get(key)
+
+    if (existingGroup) {
+      existingGroup.items.push(item)
+      return
+    }
+
+    groups.set(key, {
+      key,
+      requisitionNumber: item.requisitionNumber,
+      date: item.date,
+      name: item.name,
+      department: item.department,
+      items: [item],
+    })
+  })
+
+  return Array.from(groups.values())
+}
+
+function groupMatchesSearch(group: RequisitionHistoryGroup, query: string) {
+  return group.items.some((item) => historyMatchesSearch(item, query))
+}
+
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
   if (!equipment) return emptyEquipmentDraft
   const ratio = equipment.ratio && equipment.ratio > 0 ? equipment.ratio : 0
@@ -286,17 +329,20 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         equipmentMatchesSearch(item, managementSearch)
     )
   }, [equipment, managementFilter, managementSearch])
-  const filteredHistory = React.useMemo(() => {
-    return history.filter((item) => historyMatchesSearch(item, historySearch))
-  }, [history, historySearch])
+  const groupedHistory = React.useMemo(() => {
+    return groupRequisitionHistory(history)
+  }, [history])
+  const filteredHistoryGroups = React.useMemo(() => {
+    return groupedHistory.filter((group) => groupMatchesSearch(group, historySearch))
+  }, [groupedHistory, historySearch])
   const {
     currentPage: currentInventoryPage,
     items: paginatedEquipment,
   } = paginateItems(filteredEquipment, inventoryPage, INVENTORY_PAGE_SIZE)
   const {
     currentPage: currentHistoryPage,
-    items: paginatedHistory,
-  } = paginateItems(filteredHistory, historyPage, HISTORY_PAGE_SIZE)
+    items: paginatedHistoryGroups,
+  } = paginateItems(filteredHistoryGroups, historyPage, HISTORY_PAGE_SIZE)
 
   React.useEffect(() => {
     setInventoryPage(1)
@@ -1293,7 +1339,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
                   ยังไม่มีประวัติการเบิกอุปกรณ์
                 </div>
-              ) : filteredHistory.length === 0 ? (
+              ) : filteredHistoryGroups.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
                   ไม่พบประวัติการเบิกอุปกรณ์ที่ตรงกับคำค้น
                 </div>
@@ -1327,14 +1373,34 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedHistory.map((item) => (
+                      {paginatedHistoryGroups.flatMap((group) =>
+                        group.items.map((item, itemIndex) => (
                         <TableRow key={`${item.requisitionNumber}-${item.rowNumber}`}>
-                          <TableCell className="text-center font-semibold">
-                            {item.requisitionNumber}
-                          </TableCell>
-                          <TableCell className="text-center">{item.date}</TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell className="text-center">{item.department}</TableCell>
+                          {itemIndex === 0 ? (
+                            <>
+                              <TableCell
+                                rowSpan={group.items.length}
+                                className="align-top text-center font-semibold"
+                              >
+                                {group.requisitionNumber}
+                              </TableCell>
+                              <TableCell
+                                rowSpan={group.items.length}
+                                className="align-top text-center"
+                              >
+                                {group.date}
+                              </TableCell>
+                              <TableCell rowSpan={group.items.length} className="align-top">
+                                {group.name}
+                              </TableCell>
+                              <TableCell
+                                rowSpan={group.items.length}
+                                className="align-top text-center"
+                              >
+                                {group.department}
+                              </TableCell>
+                            </>
+                          ) : null}
                           <TableCell>{item.equipmentName}</TableCell>
                           <TableCell className="text-center">
                             {item.amount}
@@ -1364,14 +1430,15 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        ))
+                      )}
                     </TableBody>
                     </Table>
                   </div>
                   <PaginationControls
                     page={currentHistoryPage}
                     pageSize={HISTORY_PAGE_SIZE}
-                    totalItems={filteredHistory.length}
+                    totalItems={filteredHistoryGroups.length}
                     onPageChange={setHistoryPage}
                   />
                 </div>
