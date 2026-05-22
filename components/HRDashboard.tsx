@@ -490,7 +490,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     }
     try {
       const [eqRes, histRes] = await Promise.all([
-        apiGet<Equipment[]>("/api/equipment?scope=all"),
+        apiGet<Equipment[]>("/api/equipment?scope=all", {
+          cache: "no-store",
+        }),
         apiGet<RequisitionHistory[]>("/api/requisition-history", {
           cache: "no-store",
         }),
@@ -1008,21 +1010,24 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const handleDeleteEquipment = async () => {
     if (!deleteTarget) return
 
+    const deletedEquipmentId = deleteTarget.id
+    const deletedEquipmentName = deleteTarget.name
+
     setDeletingEquipment(true)
     try {
       await apiDelete<{ success: boolean }>(
-        `/api/equipment?id=${encodeURIComponent(deleteTarget.id)}`
+        `/api/equipment?id=${encodeURIComponent(deletedEquipmentId)}`
       )
 
       toast({
         title: "ลบข้อมูลอุปกรณ์สำเร็จ",
-        description: deleteTarget.name,
+        description: deletedEquipmentName,
       })
+      await fetchData(false)
       setEquipment((current) =>
-        current.filter((item) => item.id !== deleteTarget.id)
+        current.filter((item) => item.id !== deletedEquipmentId)
       )
       setDeleteTarget(null)
-      void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
       showApiErrorToast({
@@ -2202,7 +2207,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           }
           description="รายการนี้จะถูกลบออกจาก Google Sheets และไม่แสดงในหน้าคลังอุปกรณ์หรือฟอร์มเบิกอุปกรณ์"
           confirmLabel="ลบข้อมูลอุปกรณ์"
-          loadingLabel="กำลังลบ..."
+          loadingLabel="กำลังโหลด..."
           variant="destructive"
           loading={deletingEquipment}
           onConfirm={handleDeleteEquipment}
