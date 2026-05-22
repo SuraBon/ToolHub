@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
+  ChevronDown,
   Copy,
   Download,
   Edit,
@@ -304,6 +305,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [deleteTarget, setDeleteTarget] = React.useState<Equipment | null>(null)
   const [cancelHistoryTarget, setCancelHistoryTarget] =
     React.useState<RequisitionHistory | null>(null)
+  const [cancelHistoryGroupTarget, setCancelHistoryGroupTarget] =
+    React.useState<RequisitionHistoryGroup | null>(null)
+  const [expandedHistoryGroupKeys, setExpandedHistoryGroupKeys] =
+    React.useState<Set<string>>(() => new Set())
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
   const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(
@@ -378,6 +383,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setHistoryDialogOpen(false)
       setDeleteTarget(null)
       setCancelHistoryTarget(null)
+      setCancelHistoryGroupTarget(null)
       setImageEditor(null)
 
       if (showIdleMessage) {
@@ -855,6 +861,20 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     setHistoryDialogOpen(true)
   }
 
+  const toggleHistoryGroup = (groupKey: string) => {
+    setExpandedHistoryGroupKeys((current) => {
+      const next = new Set(current)
+
+      if (next.has(groupKey)) {
+        next.delete(groupKey)
+      } else {
+        next.add(groupKey)
+      }
+
+      return next
+    })
+  }
+
   const updateHistoryDraft = (
     field: keyof RequisitionHistoryDraft,
     value: string | number | boolean
@@ -942,6 +962,43 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         error,
         title: "ไม่สามารถยกเลิกการเบิกได้",
         fallback: "ไม่สามารถยกเลิกการเบิกได้",
+      })
+    } finally {
+      setCancelingHistory(false)
+    }
+  }
+
+  const handleCancelHistoryGroup = async () => {
+    if (!cancelHistoryGroupTarget) return
+
+    setCancelingHistory(true)
+    try {
+      for (const item of cancelHistoryGroupTarget.items) {
+        await apiDelete<{ success: boolean; history: RequisitionHistory }>(
+          `/api/requisition-history?rowNumber=${encodeURIComponent(
+            String(item.rowNumber)
+          )}`
+        )
+      }
+
+      toast({
+        title: "ยกเลิกคำขอเบิกสำเร็จ",
+        description: cancelHistoryGroupTarget.requisitionNumber,
+      })
+      setCancelHistoryGroupTarget(null)
+      setExpandedHistoryGroupKeys((current) => {
+        const next = new Set(current)
+        next.delete(cancelHistoryGroupTarget.key)
+        return next
+      })
+      void fetchData(false)
+    } catch (error) {
+      if (handleAuthenticatedError(error)) return
+      showApiErrorToast({
+        toast,
+        error,
+        title: "ไม่สามารถยกเลิกคำขอเบิกได้",
+        fallback: "ไม่สามารถยกเลิกคำขอเบิกได้",
       })
     } finally {
       setCancelingHistory(false)
@@ -1373,65 +1430,100 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedHistoryGroups.flatMap((group) =>
-                        group.items.map((item, itemIndex) => (
-                        <TableRow key={`${item.requisitionNumber}-${item.rowNumber}`}>
-                          {itemIndex === 0 ? (
-                            <>
-                              <TableCell
-                                rowSpan={group.items.length}
-                                className="align-top text-center font-semibold"
-                              >
+                      {paginatedHistoryGroups.map((group) => {
+                        const isExpanded = expandedHistoryGroupKeys.has(group.key)
+                        const firstItem = group.items[0]
+
+                        return (
+                          <React.Fragment key={group.key}>
+                            <TableRow>
+                              <TableCell className="text-center font-semibold">
                                 {group.requisitionNumber}
                               </TableCell>
-                              <TableCell
-                                rowSpan={group.items.length}
-                                className="align-top text-center"
-                              >
-                                {group.date}
+                              <TableCell className="text-center">{group.date}</TableCell>
+                              <TableCell>{group.name}</TableCell>
+                              <TableCell className="text-center">{group.department}</TableCell>
+                              <TableCell>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleHistoryGroup(group.key)}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left transition hover:bg-slate-50"
+                                  aria-expanded={isExpanded}
+                                >
+                                  <ChevronDown
+                                    className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
+                                      isExpanded ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate font-medium">
+                                      {firstItem
+                                        ? `${firstItem.equipmentName} ${firstItem.amount} ${firstItem.unit}`
+                                        : "-"}
+                                    </span>
+                                    <span className="text-xs text-slate-500">
+                                      {group.items.length} รายการ
+                                    </span>
+                                  </span>
+                                </button>
                               </TableCell>
-                              <TableCell rowSpan={group.items.length} className="align-top">
-                                {group.name}
+                              <TableCell className="text-center">-</TableCell>
+                              <TableCell className="text-center">-</TableCell>
+                              <TableCell className="text-center">-</TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setCancelHistoryGroupTarget(group)}
+                                  aria-label="ยกเลิกคำขอเบิก"
+                                  className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </TableCell>
-                              <TableCell
-                                rowSpan={group.items.length}
-                                className="align-top text-center"
-                              >
-                                {group.department}
-                              </TableCell>
-                            </>
-                          ) : null}
-                          <TableCell>{item.equipmentName}</TableCell>
-                          <TableCell className="text-center">
-                            {item.amount}
-                          </TableCell>
-                          <TableCell className="text-center">{item.unit}</TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openHistoryDialog(item)}
-                              aria-label="แก้ไขประวัติการเบิกอุปกรณ์"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setCancelHistoryTarget(item)}
-                              aria-label="ยกเลิกการเบิก"
-                              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                        ))
-                      )}
+                            </TableRow>
+                            {isExpanded
+                              ? group.items.map((item) => (
+                                  <TableRow
+                                    key={`${item.requisitionNumber}-${item.rowNumber}`}
+                                    className="bg-slate-50/70"
+                                  >
+                                    <TableCell colSpan={4} />
+                                    <TableCell>{item.equipmentName}</TableCell>
+                                    <TableCell className="text-center">
+                                      {item.amount}
+                                    </TableCell>
+                                    <TableCell className="text-center">{item.unit}</TableCell>
+                                    <TableCell className="text-center">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => openHistoryDialog(item)}
+                                        aria-label="แก้ไขประวัติการเบิกอุปกรณ์"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setCancelHistoryTarget(item)}
+                                        aria-label="ยกเลิกรายการเบิก"
+                                        className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : null}
+                          </React.Fragment>
+                        )
+                      })}
                     </TableBody>
                     </Table>
                   </div>
@@ -2030,6 +2122,43 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmActionDialog
+          open={Boolean(cancelHistoryGroupTarget)}
+          onOpenChange={(open) => !open && setCancelHistoryGroupTarget(null)}
+          title={
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              ยืนยันการยกเลิกคำขอเบิก
+            </span>
+          }
+          description="รายการทั้งหมดในคำขอนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์"
+          cancelLabel="ไม่ดำเนินการ"
+          confirmLabel="ยืนยันการยกเลิกคำขอ"
+          loadingLabel="กำลังยกเลิก..."
+          variant="destructive"
+          loading={cancelingHistory}
+          onConfirm={handleCancelHistoryGroup}
+          onCancel={() => setCancelHistoryGroupTarget(null)}
+        >
+          {cancelHistoryGroupTarget && (
+            <div className="space-y-2 rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-950">
+              <p className="font-semibold">
+                {cancelHistoryGroupTarget.requisitionNumber}
+              </p>
+              <p>
+                {cancelHistoryGroupTarget.name} · {cancelHistoryGroupTarget.department}
+              </p>
+              <div className="space-y-1">
+                {cancelHistoryGroupTarget.items.map((item) => (
+                  <p key={item.rowNumber}>
+                    {item.equipmentName} · {item.amount} {item.unit}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </ConfirmActionDialog>
 
         <ConfirmActionDialog
           open={Boolean(cancelHistoryTarget)}
