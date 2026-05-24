@@ -68,6 +68,11 @@ export function historyRowRange(rowIndex: number) {
   return `${HISTORY_SHEET_NAME}!A${rowIndex}:G${rowIndex}`
 }
 
+export function historyRowsRange(startRowIndex: number, rowCount: number) {
+  const endRowIndex = startRowIndex + rowCount - 1
+  return `${HISTORY_SHEET_NAME}!A${startRowIndex}:G${endRowIndex}`
+}
+
 export function auditLogAppendRange() {
   return `${AUDIT_LOG_SHEET_NAME}!A:E`
 }

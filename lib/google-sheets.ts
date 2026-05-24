@@ -9,6 +9,7 @@ import {
   historyAppendRange,
   historyReadRange,
   historyRowRange,
+  historyRowsRange,
   stockAppendRange,
   stockReadRange,
   stockRowRange,
@@ -37,10 +38,16 @@ type ReadOptions = {
   forceRefresh?: boolean
 }
 
+type SheetValueUpdate = {
+  range: string
+  values: unknown[][]
+}
+
 let equipmentCache: CacheEntry<Equipment[]> | null = null
 let historyCache: CacheEntry<HistoryRow[]> | null = null
 let equipmentReadPromise: Promise<Equipment[]> | null = null
 let historyReadPromise: Promise<HistoryRow[]> | null = null
+let requisitionWriteQueue = Promise.resolve()
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -530,18 +537,77 @@ export async function appendRequisition(data: unknown[][]) {
     HISTORY_HEADERS
   )
 
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: historyAppendRange(),
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: data,
+    },
+  })
+
+  clearHistoryCache()
+}
+
+export async function findRequisitionHistoryByNumber(requisitionNumber: string) {
+  const normalizedRequisitionNumber = requisitionNumber.trim()
+
+  if (!normalizedRequisitionNumber) {
+    return []
+  }
+
+  const history = await getRequisitionHistoryData({ forceRefresh: true })
+  return history.filter(
+    (row) => row.requisitionNumber.trim() === normalizedRequisitionNumber
+  )
+}
+
+async function executeSaveRequisitionBatch({
+  stockUpdates,
+  historyRows,
+}: {
+  stockUpdates: SheetValueUpdate[]
+  historyRows: unknown[][]
+}) {
+  if (historyRows.length === 0) {
+    throw new Error("ไม่มีรายการประวัติการเบิกสำหรับบันทึก")
+  }
+
+  const sheets = await getSheetsClient()
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
+  const history = await getRequisitionHistoryData({ forceRefresh: true })
+  const nextHistoryRowIndex = history.length + 2
+
   await withSheetsRetry(() =>
-    sheets.spreadsheets.values.append({
+    sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
-      range: historyAppendRange(),
-      valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: data,
+        valueInputOption: "USER_ENTERED",
+        data: [
+          ...stockUpdates,
+          {
+            range: historyRowsRange(nextHistoryRowIndex, historyRows.length),
+            values: historyRows,
+          },
+        ],
       },
     })
   )
 
-  clearHistoryCache()
+  clearSheetsCache()
+}
+
+export async function saveRequisitionBatch(input: {
+  stockUpdates: SheetValueUpdate[]
+  historyRows: unknown[][]
+}) {
+  const queuedSave = requisitionWriteQueue.then(
+    () => executeSaveRequisitionBatch(input),
+    () => executeSaveRequisitionBatch(input)
+  )
+  requisitionWriteQueue = queuedSave.catch(() => undefined)
+
+  return queuedSave
 }
 
 function getHistoryEquipmentMatch(
