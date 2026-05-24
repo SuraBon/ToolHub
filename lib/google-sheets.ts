@@ -6,11 +6,9 @@ import {
   STOCK_HEADERS,
   STOCK_SHEET_NAME,
   headerRange,
-  historyAppendRange,
   historyReadRange,
   historyRowRange,
   historyRowsRange,
-  stockAppendRange,
   stockReadRange,
   stockRowRange,
   stockUsageRange,
@@ -47,7 +45,8 @@ let equipmentCache: CacheEntry<Equipment[]> | null = null
 let historyCache: CacheEntry<HistoryRow[]> | null = null
 let equipmentReadPromise: Promise<Equipment[]> | null = null
 let historyReadPromise: Promise<HistoryRow[]> | null = null
-let requisitionWriteQueue = Promise.resolve()
+let equipmentAppendQueue: Promise<unknown> = Promise.resolve()
+let requisitionWriteQueue: Promise<unknown> = Promise.resolve()
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -223,6 +222,7 @@ function mapHistoryRow(row: string[], index: number) {
     equipmentName: row[4] || "",
     amount: toNumber(row[5]),
     unit: row[6] || "",
+    requestId: row[7] || "",
   }
 }
 
@@ -411,6 +411,16 @@ function generateNextEquipmentId(equipment: Equipment[]) {
 }
 
 export async function appendEquipment(input: EquipmentInput) {
+  const queuedAppend = equipmentAppendQueue.then(
+    () => appendEquipmentFixedRow(input),
+    () => appendEquipmentFixedRow(input)
+  )
+  equipmentAppendQueue = queuedAppend.catch(() => undefined)
+
+  return queuedAppend
+}
+
+async function appendEquipmentFixedRow(input: EquipmentInput) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
@@ -427,9 +437,9 @@ export async function appendEquipment(input: EquipmentInput) {
   }
 
   await withSheetsRetry(() =>
-    sheets.spreadsheets.values.append({
+    sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: stockAppendRange(),
+      range: stockRowRange(existingEquipment.length + 2),
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [equipmentToRow(equipment)],
@@ -526,29 +536,6 @@ export async function deleteEquipment(equipmentId: string) {
   return deletedEquipment
 }
 
-export async function appendRequisition(data: unknown[][]) {
-  const sheets = await getSheetsClient()
-  const spreadsheetId = requireEnv("SPREADSHEET_ID")
-
-  await ensureSheetExists(
-    sheets,
-    spreadsheetId,
-    HISTORY_SHEET_NAME,
-    HISTORY_HEADERS
-  )
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: historyAppendRange(),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: data,
-    },
-  })
-
-  clearHistoryCache()
-}
-
 export async function findRequisitionHistoryByNumber(requisitionNumber: string) {
   const normalizedRequisitionNumber = requisitionNumber.trim()
 
@@ -560,6 +547,17 @@ export async function findRequisitionHistoryByNumber(requisitionNumber: string) 
   return history.filter(
     (row) => row.requisitionNumber.trim() === normalizedRequisitionNumber
   )
+}
+
+export async function findRequisitionHistoryByRequestId(requestId: string) {
+  const normalizedRequestId = requestId.trim()
+
+  if (!normalizedRequestId) {
+    return []
+  }
+
+  const history = await getRequisitionHistoryData({ forceRefresh: true })
+  return history.filter((row) => row.requestId.trim() === normalizedRequestId)
 }
 
 async function executeSaveRequisitionBatch({
@@ -723,6 +721,7 @@ export async function updateRequisitionHistory(
     input.isMainUnit && nextEquipment.mainUnit
       ? nextEquipment.mainUnit
       : nextEquipment.baseUnit,
+    existingHistory.requestId || "",
   ]
 
   await withSheetsRetry(() =>
@@ -853,24 +852,4 @@ export async function cancelRequisitionHistory(
 
   clearSheetsCache()
   return existingHistory
-}
-
-export async function updateStock(updates: Array<{ range: string; values: unknown[][] }>) {
-  const sheets = await getSheetsClient()
-  const spreadsheetId = requireEnv("SPREADSHEET_ID")
-
-  await withSheetsRetry(() =>
-    sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: "USER_ENTERED",
-        data: updates.map((update) => ({
-          range: update.range,
-          values: update.values,
-        })),
-      },
-    })
-  )
-
-  clearEquipmentCache()
 }

@@ -18,7 +18,8 @@ export function calculateStockUpdates(
   requisition: RequisitionPayload,
   equipmentData: Equipment[],
   requisitionNumber: string,
-  formattedDate: string
+  formattedDate: string,
+  requestId = ""
 ): StockCalculationResult {
   const equipmentById = new Map(equipmentData.map((equipment) => [equipment.id, equipment]))
   const equipmentByNormalizedId = new Map(
@@ -64,6 +65,7 @@ export function calculateStockUpdates(
       equipment.name,
       item.amount,
       item.isMainUnit && equipment.mainUnit ? equipment.mainUnit : equipment.baseUnit,
+      requestId,
     ])
   }
 

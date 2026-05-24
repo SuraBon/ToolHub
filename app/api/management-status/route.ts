@@ -1,7 +1,8 @@
-import { formatApiErrorMessage, jsonData, jsonError } from "@/lib/api-response"
+import { jsonData } from "@/lib/api-response"
 import { getAllEquipmentData, getRequisitionHistoryData } from "@/lib/google-sheets"
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import {
+  buildErrorManagementStatus,
   buildReadyManagementStatus,
   getBaseManagementStatus,
 } from "@/lib/management-status"
@@ -31,7 +32,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error checking management status:", error)
     return refreshHrSessionCookie(
-      jsonError(formatApiErrorMessage(error, "ไม่สามารถตรวจสอบสถานะระบบได้"), 500)
+      jsonData(buildErrorManagementStatus(error))
     )
   }
 }

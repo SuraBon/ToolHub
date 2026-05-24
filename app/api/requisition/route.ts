@@ -7,6 +7,7 @@ import {
 import { formatThaiDate } from "@/lib/date-format"
 import {
   findRequisitionHistoryByNumber,
+  findRequisitionHistoryByRequestId,
   getEquipmentData,
   saveRequisitionBatch,
 } from "@/lib/google-sheets"
@@ -31,7 +32,22 @@ function getRequestId(body: unknown) {
   }
 
   const requestId = String((body as { requestId?: unknown }).requestId || "").trim()
-  return requestId.length <= 128 ? requestId : ""
+  return /^[A-Za-z0-9_-]{8,128}$/.test(requestId) ? requestId : ""
+}
+
+function responseFromExistingHistory(
+  history: Awaited<ReturnType<typeof findRequisitionHistoryByNumber>>
+) {
+  const requisitionNumber = history[0]?.requisitionNumber
+
+  if (!requisitionNumber) {
+    return null
+  }
+
+  return {
+    requisitionNumber,
+    message: "ส่งคำขอเบิกสำเร็จ",
+  }
 }
 
 async function processRequisition(
@@ -44,19 +60,28 @@ async function processRequisition(
   try {
     const requisition = validateRequisitionPayload(body)
 
+    if (requestId) {
+      const existingRequestHistory =
+        await findRequisitionHistoryByRequestId(requestId)
+      const existingRequestResponse = responseFromExistingHistory(
+        existingRequestHistory
+      )
+
+      if (existingRequestResponse) {
+        idempotencyCache.set(requestId, existingRequestResponse)
+        return existingRequestResponse
+      }
+    }
+
     const existingHistory = await findRequisitionHistoryByNumber(requisitionNumber)
+    const existingResponse = responseFromExistingHistory(existingHistory)
 
-    if (existingHistory.length > 0) {
-      const responseData = {
-        requisitionNumber,
-        message: "ส่งคำขอเบิกสำเร็จ",
-      }
-
+    if (existingResponse) {
       if (requestId) {
-        idempotencyCache.set(requestId, responseData)
+        idempotencyCache.set(requestId, existingResponse)
       }
 
-      return responseData
+      return existingResponse
     }
 
     const equipmentData = await getEquipmentData({ forceRefresh: true })
@@ -65,7 +90,8 @@ async function processRequisition(
       requisition,
       equipmentData,
       requisitionNumber,
-      formatThaiDate(currentDate)
+      formatThaiDate(currentDate),
+      requestId
     )
 
     writeAttempted = true
@@ -88,16 +114,14 @@ async function processRequisition(
 
     if (requestId) {
       try {
-        const existingHistory = await findRequisitionHistoryByNumber(requisitionNumber)
+        const existingHistory = requestId
+          ? await findRequisitionHistoryByRequestId(requestId)
+          : await findRequisitionHistoryByNumber(requisitionNumber)
+        const existingResponse = responseFromExistingHistory(existingHistory)
 
-        if (existingHistory.length > 0) {
-          const responseData = {
-            requisitionNumber,
-            message: "ส่งคำขอเบิกสำเร็จ",
-          }
-
-          idempotencyCache.set(requestId, responseData)
-          return responseData
+        if (existingResponse) {
+          idempotencyCache.set(requestId, existingResponse)
+          return existingResponse
         }
       } catch (readBackError) {
         console.error("Error reading back requisition after write failure:", {

@@ -47,6 +47,19 @@ function getInitialEquipmentIds(value: string | null) {
   )
 }
 
+function createRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+
+  return [
+    "req",
+    Date.now().toString(36),
+    Math.random().toString(36).slice(2, 10),
+    Math.random().toString(36).slice(2, 10),
+  ].join("-")
+}
+
 function FormPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -104,7 +117,7 @@ function FormPageContent() {
     try {
       const result = await apiPost<RequisitionResponse>("/api/requisition", {
         ...data,
-        requestId: crypto.randomUUID(),
+        requestId: createRequestId(),
       })
       submittedSuccessfully = true
 

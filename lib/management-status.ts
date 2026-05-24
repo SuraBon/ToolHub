@@ -1,4 +1,8 @@
 import { getEnvChecks, getMissingRequiredEnv, hasEnv } from "@/lib/env"
+import {
+  GOOGLE_SHEETS_QUOTA_MESSAGE,
+  isGoogleSheetsQuotaError,
+} from "@/lib/google-sheets-errors"
 import type { Equipment } from "@/types"
 
 type RequisitionHistorySummary = {
@@ -58,5 +62,46 @@ export function buildReadyManagementStatus(
     history: {
       total: history.length,
     },
+  }
+}
+
+function getGoogleSheetsErrorMessage(error: unknown) {
+  if (isGoogleSheetsQuotaError(error)) {
+    return GOOGLE_SHEETS_QUOTA_MESSAGE
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error)
+
+  if (
+    message.includes("credential") ||
+    message.includes("private_key") ||
+    message.includes("invalid_grant") ||
+    message.includes("unauthorized") ||
+    message.includes("permission")
+  ) {
+    return "การตั้งค่า Google Sheets หรือสิทธิ์การเข้าถึงไม่ถูกต้อง กรุณาตรวจสอบ credentials และการแชร์ไฟล์"
+  }
+
+  if (
+    message.includes("spreadsheet") ||
+    message.includes("not found") ||
+    message.includes("requested entity was not found")
+  ) {
+    return "ไม่พบไฟล์ Google Sheets ที่ตั้งค่าไว้ กรุณาตรวจสอบ SPREADSHEET_ID"
+  }
+
+  return "ไม่สามารถอ่านข้อมูลจาก Google Sheets ได้ กรุณาลองใหม่อีกครั้ง"
+}
+
+export function buildErrorManagementStatus(error: unknown) {
+  const { status } = getBaseManagementStatus()
+
+  return {
+    ...status,
+    ok: false,
+    googleSheetsReady: false,
+    error: getGoogleSheetsErrorMessage(error),
+    inventory: null,
+    history: null,
   }
 }

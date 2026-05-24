@@ -1,7 +1,8 @@
-import { formatApiErrorMessage, jsonData, jsonError } from "@/lib/api-response"
+import { jsonData } from "@/lib/api-response"
 import { getAllEquipmentData, getRequisitionHistoryData } from "@/lib/google-sheets"
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import {
+  buildErrorManagementStatus,
   buildReadyManagementStatus,
   getBaseManagementStatus,
 } from "@/lib/management-status"
@@ -41,7 +42,11 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching HR dashboard data:", error)
     return refreshHrSessionCookie(
-      jsonError(formatApiErrorMessage(error, "ไม่สามารถดึงข้อมูลได้"), 500)
+      jsonData({
+        equipment: [],
+        history: [],
+        status: buildErrorManagementStatus(error),
+      })
     )
   }
 }
