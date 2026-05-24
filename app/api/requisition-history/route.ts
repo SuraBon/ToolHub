@@ -29,7 +29,7 @@ export async function GET() {
     return refreshHrSessionCookie(jsonData(history))
   } catch (error) {
     console.error("Error fetching requisition history:", error)
-    return jsonError("ไม่สามารถดึงประวัติการเบิกได้", 500)
+    return jsonError(formatApiErrorMessage(error, "ไม่สามารถดึงประวัติการเบิกได้"), 500)
   }
 }
 

@@ -15,6 +15,7 @@ import {
   stockUsageRange,
 } from "@/lib/google-sheets-ranges"
 import { requireEnv } from "@/lib/env"
+import { isGoogleSheetsQuotaError } from "@/lib/google-sheets-errors"
 import { toBaseUnit } from "@/lib/unit-conversion"
 import { Equipment } from "@/types"
 import type {
@@ -23,6 +24,23 @@ import type {
 } from "@/lib/validation"
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+const SHEETS_CACHE_TTL_MS = 15_000
+const SHEETS_RETRY_DELAYS_MS = [500, 1000]
+
+type CacheEntry<T> = {
+  data: T
+  expiresAt: number
+}
+
+type HistoryRow = ReturnType<typeof mapHistoryRow>
+type ReadOptions = {
+  forceRefresh?: boolean
+}
+
+let equipmentCache: CacheEntry<Equipment[]> | null = null
+let historyCache: CacheEntry<HistoryRow[]> | null = null
+let equipmentReadPromise: Promise<Equipment[]> | null = null
+let historyReadPromise: Promise<HistoryRow[]> | null = null
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -32,6 +50,61 @@ type EquipmentInput = Omit<
   used?: number | string
   remaining?: number | string
   ratio?: number | string
+}
+
+function getCachedData<T>(cache: CacheEntry<T> | null) {
+  if (!cache || cache.expiresAt <= Date.now()) {
+    return null
+  }
+
+  return cache.data
+}
+
+function setCachedData<T>(data: T): CacheEntry<T> {
+  return {
+    data,
+    expiresAt: Date.now() + SHEETS_CACHE_TTL_MS,
+  }
+}
+
+function clearEquipmentCache() {
+  equipmentCache = null
+}
+
+function clearHistoryCache() {
+  historyCache = null
+}
+
+function clearSheetsCache() {
+  clearEquipmentCache()
+  clearHistoryCache()
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function withSheetsRetry<T>(operation: () => Promise<T>) {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= SHEETS_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error
+
+      if (
+        attempt >= SHEETS_RETRY_DELAYS_MS.length ||
+        !isGoogleSheetsQuotaError(error)
+      ) {
+        throw error
+      }
+
+      await sleep(SHEETS_RETRY_DELAYS_MS[attempt])
+    }
+  }
+
+  throw lastError
 }
 
 export async function getSheetsClient() {
@@ -52,30 +125,34 @@ async function ensureSheetExists(
   sheetName: string,
   headers: string[]
 ) {
-  const metadata = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: "sheets.properties",
-  })
+  const metadata = await withSheetsRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties",
+    })
+  )
   const existingSheet = metadata.data.sheets?.find(
     (sheet) => sheet.properties?.title === sheetName
   )
 
   if (!existingSheet) {
     try {
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: {
-                  title: sheetName,
+      await withSheetsRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                addSheet: {
+                  properties: {
+                    title: sheetName,
+                  },
                 },
               },
-            },
-          ],
-        },
-      })
+            ],
+          },
+        })
+      )
     } catch (error) {
       const message = error instanceof Error ? error.message : ""
       if (!message.includes("already exists")) {
@@ -84,14 +161,16 @@ async function ensureSheetExists(
     }
   }
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: headerRange(sheetName, headers.length),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [headers],
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: headerRange(sheetName, headers.length),
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [headers],
+      },
+    })
+  )
 }
 
 export async function ensureWorkbookSetup() {
@@ -124,6 +203,19 @@ function mapEquipmentRow(row: string[], index: number): Equipment {
     baseUnit: row[6] || "",
     mainUnit: row[7] || "",
     ratio: row[8] ? toNumber(row[8]) : undefined,
+  }
+}
+
+function mapHistoryRow(row: string[], index: number) {
+  return {
+    rowNumber: index + 2,
+    requisitionNumber: row[0] || "",
+    date: row[1] || "",
+    name: row[2] || "",
+    department: row[3] || "",
+    equipmentName: row[4] || "",
+    amount: toNumber(row[5]),
+    unit: row[6] || "",
   }
 }
 
@@ -184,49 +276,112 @@ function validateEquipmentInput(equipment: Equipment) {
   return null
 }
 
-export async function getAllEquipmentData() {
+async function readAllEquipmentData(forceRefresh: boolean) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
-  await ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS)
+  try {
+    const response = await withSheetsRetry(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: stockReadRange(),
+      })
+    )
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: stockReadRange(),
-  })
+    const rows = response.data.values || []
+    const equipment = rows.map((row, index) => mapEquipmentRow(row as string[], index))
+    equipmentCache = setCachedData(equipment)
 
-  const rows = response.data.values || []
-  return rows.map((row, index) => mapEquipmentRow(row as string[], index))
+    return equipment
+  } catch (error) {
+    if (!forceRefresh && isGoogleSheetsQuotaError(error) && equipmentCache) {
+      return equipmentCache.data
+    }
+
+    throw error
+  }
 }
 
-export async function getRequisitionHistoryData() {
+export async function getAllEquipmentData({ forceRefresh = false }: ReadOptions = {}) {
+  if (!forceRefresh) {
+    const cachedEquipment = getCachedData(equipmentCache)
+
+    if (cachedEquipment) {
+      return cachedEquipment
+    }
+
+    if (equipmentReadPromise) {
+      return equipmentReadPromise
+    }
+
+    const readPromise = readAllEquipmentData(false)
+    equipmentReadPromise = readPromise
+
+    try {
+      return await readPromise
+    } finally {
+      if (equipmentReadPromise === readPromise) {
+        equipmentReadPromise = null
+      }
+    }
+  }
+
+  return readAllEquipmentData(true)
+}
+
+async function readRequisitionHistoryData(forceRefresh: boolean) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
-  await ensureSheetExists(
-    sheets,
-    spreadsheetId,
-    HISTORY_SHEET_NAME,
-    HISTORY_HEADERS
-  )
+  try {
+    const response = await withSheetsRetry(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: historyReadRange(),
+      })
+    )
 
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: historyReadRange(),
-  })
+    const rows = response.data.values || []
+    const history = rows.map((row, index) => mapHistoryRow(row as string[], index))
+    historyCache = setCachedData(history)
 
-  const rows = response.data.values || []
+    return history
+  } catch (error) {
+    if (!forceRefresh && isGoogleSheetsQuotaError(error) && historyCache) {
+      return historyCache.data
+    }
 
-  return rows.map((row, index) => ({
-    rowNumber: index + 2,
-    requisitionNumber: row[0] || "",
-    date: row[1] || "",
-    name: row[2] || "",
-    department: row[3] || "",
-    equipmentName: row[4] || "",
-    amount: toNumber(row[5]),
-    unit: row[6] || "",
-  }))
+    throw error
+  }
+}
+
+export async function getRequisitionHistoryData({
+  forceRefresh = false,
+}: ReadOptions = {}) {
+  if (!forceRefresh) {
+    const cachedHistory = getCachedData(historyCache)
+
+    if (cachedHistory) {
+      return cachedHistory
+    }
+
+    if (historyReadPromise) {
+      return historyReadPromise
+    }
+
+    const readPromise = readRequisitionHistoryData(false)
+    historyReadPromise = readPromise
+
+    try {
+      return await readPromise
+    } finally {
+      if (historyReadPromise === readPromise) {
+        historyReadPromise = null
+      }
+    }
+  }
+
+  return readRequisitionHistoryData(true)
 }
 
 export async function getAvailableEquipmentData() {
@@ -234,8 +389,8 @@ export async function getAvailableEquipmentData() {
   return equipment.filter((item) => item.remaining > 0)
 }
 
-export async function getEquipmentData() {
-  return getAllEquipmentData()
+export async function getEquipmentData(options?: ReadOptions) {
+  return getAllEquipmentData(options)
 }
 
 function generateNextEquipmentId(equipment: Equipment[]) {
@@ -251,7 +406,7 @@ function generateNextEquipmentId(equipment: Equipment[]) {
 export async function appendEquipment(input: EquipmentInput) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
-  const existingEquipment = await getAllEquipmentData()
+  const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
   const fallbackId = generateNextEquipmentId(existingEquipment)
   const equipment = normalizeEquipmentInput({ ...input, id: "" }, fallbackId)
   const validationError = validateEquipmentInput(equipment)
@@ -264,22 +419,25 @@ export async function appendEquipment(input: EquipmentInput) {
     throw new Error("รหัสอุปกรณ์นี้มีอยู่แล้ว")
   }
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: stockAppendRange(),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [equipmentToRow(equipment)],
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: stockAppendRange(),
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [equipmentToRow(equipment)],
+      },
+    })
+  )
 
+  clearEquipmentCache()
   return equipment
 }
 
 export async function updateEquipment(equipmentId: string, input: EquipmentInput) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
-  const existingEquipment = await getAllEquipmentData()
+  const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
   const rowIndex = existingEquipment.findIndex((item) => item.id === equipmentId)
 
   if (rowIndex === -1) {
@@ -296,22 +454,25 @@ export async function updateEquipment(equipmentId: string, input: EquipmentInput
     throw new Error(validationError)
   }
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: stockRowRange(rowIndex + 2),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [equipmentToRow(equipment)],
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: stockRowRange(rowIndex + 2),
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [equipmentToRow(equipment)],
+      },
+    })
+  )
 
+  clearEquipmentCache()
   return equipment
 }
 
 export async function deleteEquipment(equipmentId: string) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
-  const existingEquipment = await getAllEquipmentData()
+  const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
   const rowIndex = existingEquipment.findIndex((item) => item.id === equipmentId)
 
   if (rowIndex === -1) {
@@ -319,10 +480,12 @@ export async function deleteEquipment(equipmentId: string) {
   }
   const deletedEquipment = existingEquipment[rowIndex]
 
-  const metadata = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: "sheets.properties",
-  })
+  const metadata = await withSheetsRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties",
+    })
+  )
   const stockSheet = metadata.data.sheets?.find(
     (sheet) => sheet.properties?.title === STOCK_SHEET_NAME
   )
@@ -332,24 +495,27 @@ export async function deleteEquipment(equipmentId: string) {
     throw new Error("ไม่พบชีตสต๊อกอุปกรณ์")
   }
 
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId,
-              dimension: "ROWS",
-              startIndex: rowIndex + 1,
-              endIndex: rowIndex + 2,
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex + 1,
+                endIndex: rowIndex + 2,
+              },
             },
           },
-        },
-      ],
-    },
-  })
+        ],
+      },
+    })
+  )
 
+  clearEquipmentCache()
   return deletedEquipment
 }
 
@@ -364,14 +530,18 @@ export async function appendRequisition(data: unknown[][]) {
     HISTORY_HEADERS
   )
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: historyAppendRange(),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: data,
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: historyAppendRange(),
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: data,
+      },
+    })
+  )
+
+  clearHistoryCache()
 }
 
 function getHistoryEquipmentMatch(
@@ -390,8 +560,8 @@ export async function updateRequisitionHistory(
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const [history, equipmentData] = await Promise.all([
-    getRequisitionHistoryData(),
-    getAllEquipmentData(),
+    getRequisitionHistoryData({ forceRefresh: true }),
+    getAllEquipmentData({ forceRefresh: true }),
   ])
   const existingHistory = history.find((row) => row.rowNumber === input.rowNumber)
 
@@ -489,20 +659,23 @@ export async function updateRequisitionHistory(
       : nextEquipment.baseUnit,
   ]
 
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      valueInputOption: "USER_ENTERED",
-      data: [
-        ...stockUpdates,
-        {
-          range: historyRowRange(input.rowNumber),
-          values: [historyRow],
-        },
-      ],
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data: [
+          ...stockUpdates,
+          {
+            range: historyRowRange(input.rowNumber),
+            values: [historyRow],
+          },
+        ],
+      },
+    })
+  )
 
+  clearSheetsCache()
   return {
     rowNumber: input.rowNumber,
     requisitionNumber: existingHistory.requisitionNumber,
@@ -524,8 +697,8 @@ export async function cancelRequisitionHistory(
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const [history, equipmentData] = await Promise.all([
-    getRequisitionHistoryData(),
-    getAllEquipmentData(),
+    getRequisitionHistoryData({ forceRefresh: true }),
+    getAllEquipmentData({ forceRefresh: true }),
   ])
   const existingHistory = history.find((row) => row.rowNumber === input.rowNumber)
 
@@ -566,10 +739,12 @@ export async function cancelRequisitionHistory(
     )
   }
 
-  const metadata = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: "sheets.properties",
-  })
+  const metadata = await withSheetsRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties",
+    })
+  )
   const historySheet = metadata.data.sheets?.find(
     (sheet) => sheet.properties?.title === HISTORY_SHEET_NAME
   )
@@ -579,33 +754,38 @@ export async function cancelRequisitionHistory(
     throw new Error("ไม่พบชีตประวัติการเบิก")
   }
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: stockUsageRange(equipmentIndex + 2),
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[nextUsed, nextRemaining]],
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: stockUsageRange(equipmentIndex + 2),
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[nextUsed, nextRemaining]],
+      },
+    })
+  )
 
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId,
-              dimension: "ROWS",
-              startIndex: input.rowNumber - 1,
-              endIndex: input.rowNumber,
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: input.rowNumber - 1,
+                endIndex: input.rowNumber,
+              },
             },
           },
-        },
-      ],
-    },
-  })
+        ],
+      },
+    })
+  )
 
+  clearSheetsCache()
   return existingHistory
 }
 
@@ -613,14 +793,18 @@ export async function updateStock(updates: Array<{ range: string; values: unknow
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      valueInputOption: "USER_ENTERED",
-      data: updates.map((update) => ({
-        range: update.range,
-        values: update.values,
-      })),
-    },
-  })
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data: updates.map((update) => ({
+          range: update.range,
+          values: update.values,
+        })),
+      },
+    })
+  )
+
+  clearEquipmentCache()
 }

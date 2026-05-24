@@ -115,6 +115,12 @@ type EquipmentResponse = {
   equipment: Equipment
 }
 
+type HrDashboardDataResponse = {
+  equipment: Equipment[]
+  history: RequisitionHistory[]
+  status: SystemStatus
+}
+
 type UploadResponse = {
   success: boolean
   url: string
@@ -358,7 +364,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   }, [historySearch])
 
   React.useEffect(() => {
-    setRequestFormUrl(`${window.location.origin}/form`)
+    setRequestFormUrl(`${window.location.origin}/`)
   }, [])
 
   const clearSessionTimers = React.useCallback(() => {
@@ -489,26 +495,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setLoading(true)
     }
     try {
-      const [eqRes, histRes] = await Promise.all([
-        apiGet<Equipment[]>("/api/equipment?scope=all", {
-          cache: "no-store",
-        }),
-        apiGet<RequisitionHistory[]>("/api/requisition-history", {
-          cache: "no-store",
-        }),
-      ])
-      setEquipment(Array.isArray(eqRes) ? sortEquipmentById(eqRes) : [])
-      setHistory(Array.isArray(histRes) ? histRes : [])
-      try {
-        const status = await apiGet<SystemStatus>("/api/management-status", {
-          cache: "no-store",
-        })
-        setSystemStatus(status)
-      } catch (error) {
-        if (handleAuthenticatedError(error)) return
-        console.error("Error fetching system status:", error)
-        setSystemStatus(null)
-      }
+      const data = await apiGet<HrDashboardDataResponse>("/api/hr-dashboard-data", {
+        cache: "no-store",
+      })
+      setEquipment(Array.isArray(data.equipment) ? sortEquipmentById(data.equipment) : [])
+      setHistory(Array.isArray(data.history) ? data.history : [])
+      setSystemStatus(data.status)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
       console.error("Error fetching HR data:", error)
@@ -633,7 +625,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       await navigator.clipboard.writeText(requestFormUrl)
       toast({
         title: "คัดลอกลิงก์สำเร็จ",
-        description: "นำลิงก์ฟอร์มเบิกอุปกรณ์ไปใช้งานได้ทันที",
+        description: "นำลิงก์หน้าหลักคลังอุปกรณ์ไปใช้งานได้ทันที",
       })
     } catch (error) {
       console.error("Error copying request form URL:", error)
@@ -1198,7 +1190,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <QrCode className="h-4 w-4" />
-            QR ฟอร์มเบิกอุปกรณ์
+            QR หน้าหลักคลังอุปกรณ์
           </Button>
         </div>
 
@@ -1679,10 +1671,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-blue-600" />
-                QR ฟอร์มเบิกอุปกรณ์
+                QR หน้าหลักคลังอุปกรณ์
               </DialogTitle>
               <DialogDescription>
-                สแกนเพื่อเปิดฟอร์มเบิกอุปกรณ์ หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
+                สแกนเพื่อเปิดหน้าหลักคลังอุปกรณ์ หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
               </DialogDescription>
             </DialogHeader>
 
@@ -1729,7 +1721,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 {requestFormQr ? (
                   <Image
                     src={requestFormQr}
-                    alt="QR สำหรับเปิดฟอร์มเบิกอุปกรณ์"
+                    alt="QR สำหรับเปิดหน้าหลักคลังอุปกรณ์"
                     width={196}
                     height={196}
                     unoptimized

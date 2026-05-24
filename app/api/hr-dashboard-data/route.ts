@@ -16,7 +16,13 @@ export async function GET() {
   const { status, missingRequiredEnv } = getBaseManagementStatus()
 
   if (missingRequiredEnv.length > 0) {
-    return refreshHrSessionCookie(jsonData(status))
+    return refreshHrSessionCookie(
+      jsonData({
+        equipment: [],
+        history: [],
+        status,
+      })
+    )
   }
 
   try {
@@ -26,12 +32,16 @@ export async function GET() {
     ])
 
     return refreshHrSessionCookie(
-      jsonData(buildReadyManagementStatus(equipment, history))
+      jsonData({
+        equipment,
+        history,
+        status: buildReadyManagementStatus(equipment, history),
+      })
     )
   } catch (error) {
-    console.error("Error checking management status:", error)
+    console.error("Error fetching HR dashboard data:", error)
     return refreshHrSessionCookie(
-      jsonError(formatApiErrorMessage(error, "ไม่สามารถตรวจสอบสถานะระบบได้"), 500)
+      jsonError(formatApiErrorMessage(error, "ไม่สามารถดึงข้อมูลได้"), 500)
     )
   }
 }

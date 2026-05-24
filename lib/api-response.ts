@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { ZodError } from "zod"
 
+import {
+  GOOGLE_SHEETS_QUOTA_MESSAGE,
+  isGoogleSheetsQuotaError,
+} from "@/lib/google-sheets-errors"
+
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status })
 }
@@ -17,6 +22,10 @@ export function jsonData<T>(data: T, status = 200) {
 }
 
 export function formatApiErrorMessage(error: unknown, fallback: string) {
+  if (isGoogleSheetsQuotaError(error)) {
+    return GOOGLE_SHEETS_QUOTA_MESSAGE
+  }
+
   if (error instanceof ZodError) {
     return error.issues[0]?.message || fallback
   }

@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { showApiErrorToast } from "@/lib/show-api-error-toast"
 import { RequisitionFormSchema } from "@/types"
 import type {
   Equipment,
@@ -31,7 +30,7 @@ import type {
 interface RequisitionFormProps {
   equipment: Equipment[]
   initialEquipmentIds?: string[]
-  onSubmit: (data: RequisitionFormValues) => Promise<void>
+  onSubmit: (data: RequisitionFormValues) => Promise<boolean>
   isSubmitting?: boolean
 }
 
@@ -95,19 +94,6 @@ export function RequisitionForm({
     name: "items",
   })
 
-  const handleSubmit = async (data: RequisitionFormValues) => {
-    try {
-      await onSubmit(data)
-      form.reset()
-    } catch (error) {
-      showApiErrorToast({
-        toast,
-        error,
-        fallback: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้ กรุณาตรวจสอบข้อมูลและลองอีกครั้ง",
-      })
-    }
-  }
-
   const handleEquipmentSelect = (index: number, equipmentId: string) => {
     const selectedEquipment = equipment.find((eq) => eq.id === equipmentId)
 
@@ -123,6 +109,14 @@ export function RequisitionForm({
     form.setValue(`items.${index}.equipmentName`, selectedEquipment.name)
     form.setValue(`items.${index}.equipmentImage`, selectedEquipment.image || "")
     form.setValue(`items.${index}.isMainUnit`, false)
+  }
+
+  const handleValidatedSubmit = async (data: RequisitionFormValues) => {
+    const submitted = await onSubmit(data)
+
+    if (submitted) {
+      form.reset()
+    }
   }
 
   React.useEffect(() => {
@@ -170,7 +164,7 @@ export function RequisitionForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleValidatedSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <FormField

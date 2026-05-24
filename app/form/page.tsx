@@ -1,8 +1,8 @@
 ﻿"use client"
 
 import * as React from "react"
-import { useSearchParams } from "next/navigation"
-import { AlertTriangle, Package } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { AlertTriangle, CheckCircle2, Package } from "lucide-react"
 
 import { BackToStockButton } from "@/components/BackToStockButton"
 import { MobileActionButton } from "@/components/MobileActionButton"
@@ -48,11 +48,15 @@ function getInitialEquipmentIds(value: string | null) {
 }
 
 function FormPageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
   const [stockError, setStockError] = React.useState("")
+  const [successRequisitionNumber, setSuccessRequisitionNumber] = React.useState("")
+  const submittingRef = React.useRef(false)
+  const redirectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const { toast } = useToast()
   const initialEquipmentIds = React.useMemo(
     () => getInitialEquipmentIds(searchParams.get("equipmentIds")),
@@ -80,16 +84,41 @@ function FormPageContent() {
     fetchEquipment()
   }, [fetchEquipment])
 
+  React.useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const handleSubmit = async (data: RequisitionFormType) => {
+    if (submittingRef.current) {
+      return false
+    }
+
+    submittingRef.current = true
     setSubmitting(true)
+    let submittedSuccessfully = false
+
     try {
-      const result = await apiPost<RequisitionResponse>("/api/requisition", data)
+      const result = await apiPost<RequisitionResponse>("/api/requisition", {
+        ...data,
+        requestId: crypto.randomUUID(),
+      })
+      submittedSuccessfully = true
 
       toast({
-        title: "ส่งคำขอเบิกอุปกรณ์สำเร็จ",
-        description: `เลขที่ใบเบิก: ${result.requisitionNumber}`,
+        title: "เสร็จแล้ว",
+        description: `ส่งคำขอเบิกอุปกรณ์สำเร็จ เลขที่ใบเบิก: ${result.requisitionNumber}`,
       })
-      await fetchEquipment()
+      setSuccessRequisitionNumber(result.requisitionNumber)
+
+      redirectTimeoutRef.current = setTimeout(() => {
+        router.push("/")
+      }, 1200)
+
+      return true
     } catch (error) {
       const errorMessage = getErrorMessage(
         error,
@@ -101,7 +130,7 @@ function FormPageContent() {
         errorMessage.includes("ไม่เพียงพอ")
       ) {
         setStockError(errorMessage)
-        return
+        return false
       }
 
       console.error("Error submitting requisition:", error)
@@ -110,8 +139,12 @@ function FormPageContent() {
         error,
         fallback: "ไม่สามารถส่งคำขอเบิกอุปกรณ์ได้",
       })
+      return false
     } finally {
-      setSubmitting(false)
+      if (!submittedSuccessfully) {
+        submittingRef.current = false
+        setSubmitting(false)
+      }
     }
   }
 
@@ -141,6 +174,22 @@ function FormPageContent() {
               ตกลง
             </MobileActionButton>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(successRequisitionNumber)}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+              เสร็จแล้ว
+            </DialogTitle>
+            <DialogDescription>
+              ส่งคำขอเบิกอุปกรณ์สำเร็จ กำลังกลับไปยังหน้าหลัก
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+            เลขที่ใบเบิก: {successRequisitionNumber}
+          </div>
         </DialogContent>
       </Dialog>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">

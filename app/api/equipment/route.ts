@@ -3,7 +3,6 @@ import { logAdminEvent } from "@/lib/audit-log"
 import {
   appendEquipment,
   deleteEquipment,
-  ensureWorkbookSetup,
   getAllEquipmentData,
   getAvailableEquipmentData,
   updateEquipment,
@@ -13,8 +12,6 @@ import { validateEquipmentPayload } from "@/lib/validation"
 
 export async function GET(request: Request) {
   try {
-    await ensureWorkbookSetup()
-
     const { searchParams } = new URL(request.url)
     const scope = searchParams.get("scope")
     const equipment =
@@ -23,7 +20,7 @@ export async function GET(request: Request) {
     return jsonData(equipment)
   } catch (error) {
     console.error("Error fetching equipment:", error)
-    return jsonError("ไม่สามารถดึงข้อมูลอุปกรณ์ได้", 500)
+    return jsonError(formatApiErrorMessage(error, "ไม่สามารถดึงข้อมูลอุปกรณ์ได้"), 500)
   }
 }
 
