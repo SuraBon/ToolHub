@@ -7,16 +7,26 @@ import { useRouter, useSearchParams } from "next/navigation"
 import {
   Check,
   ClipboardList,
+  History,
   Package,
   Search,
   Settings,
   ShoppingCart,
   SlidersHorizontal,
   Trash2,
+  UserRound,
   X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { MobileActionButton } from "@/components/MobileActionButton"
 import { PaginationControls } from "@/components/PaginationControls"
 import { Input } from "@/components/ui/input"
@@ -39,6 +49,11 @@ import {
   sortEquipmentById,
   stockFilterLabels,
 } from "@/lib/equipment-utils"
+import {
+  clearLocalRequisitionHistory,
+  getLocalRequisitionHistory,
+  type LocalRequisitionHistoryEntry,
+} from "@/lib/local-requisition-history"
 import { paginateItems } from "@/lib/pagination"
 import { useEquipmentSelection } from "@/lib/use-equipment-selection"
 import type { Equipment } from "@/types"
@@ -67,6 +82,17 @@ function EquipmentImage({ item, size = 44 }: { item: Equipment; size?: number })
   )
 }
 
+function formatLocalHistoryDate(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return value
+
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date)
+}
+
 function StockOverviewContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -76,6 +102,10 @@ function StockOverviewContent() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [stockFilter, setStockFilter] = React.useState<StockFilter>("all")
   const [stockPage, setStockPage] = React.useState(1)
+  const [localHistoryOpen, setLocalHistoryOpen] = React.useState(false)
+  const [localHistory, setLocalHistory] = React.useState<
+    LocalRequisitionHistoryEntry[]
+  >([])
   const { toast } = useToast()
 
   const fetchEquipment = React.useCallback(async () => {
@@ -98,6 +128,10 @@ function StockOverviewContent() {
   React.useEffect(() => {
     fetchEquipment()
   }, [fetchEquipment])
+
+  React.useEffect(() => {
+    setLocalHistory(getLocalRequisitionHistory())
+  }, [])
 
   React.useEffect(() => {
     setStockPage(1)
@@ -137,6 +171,87 @@ function StockOverviewContent() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_32%,#f1f5f9_100%)] pb-24 text-slate-950 md:pb-0">
       <Toaster />
+      <Dialog open={localHistoryOpen} onOpenChange={setLocalHistoryOpen}>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-3xl overflow-hidden p-0">
+          <DialogHeader className="border-b border-slate-100 px-5 py-4 pr-12">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <UserRound className="h-5 w-5 text-blue-600" />
+              คำขอเบิกของฉัน
+            </DialogTitle>
+            <DialogDescription>
+              ประวัติที่บันทึกไว้ในเครื่องนี้หลังส่งคำขอเบิกสำเร็จ
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[62vh] overflow-y-auto px-5 py-4">
+            {localHistory.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                ยังไม่มีประวัติคำขอเบิกในเครื่องนี้
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {localHistory.map((entry) => (
+                  <div
+                    key={entry.requisitionNumber}
+                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-950">
+                          {entry.requisitionNumber}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {entry.name} · {entry.department}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-slate-500">
+                        <History className="h-3.5 w-3.5" />
+                        {formatLocalHistoryDate(entry.requestedAt)}
+                      </div>
+                    </div>
+                    <div className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-100 bg-slate-50">
+                      {entry.items.map((item, index) => (
+                        <div
+                          key={`${entry.requisitionNumber}-${item.equipmentId}-${index}`}
+                          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-sm"
+                        >
+                          <span className="min-w-0 truncate font-medium text-slate-800">
+                            {item.equipmentName}
+                          </span>
+                          <span className="shrink-0 font-semibold text-slate-950">
+                            {item.amount} {item.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="border-t border-slate-100 px-5 py-4 sm:justify-between sm:space-x-0">
+            <MobileActionButton
+              type="button"
+              variant="outline"
+              disabled={localHistory.length === 0}
+              onClick={() => {
+                clearLocalRequisitionHistory()
+                setLocalHistory([])
+              }}
+              className="w-full rounded-xl border-slate-200 bg-white text-slate-700 sm:w-auto"
+            >
+              <Trash2 className="h-4 w-4" />
+              ล้างประวัติในเครื่อง
+            </MobileActionButton>
+            <MobileActionButton
+              type="button"
+              onClick={() => setLocalHistoryOpen(false)}
+              className="w-full rounded-xl sm:w-auto"
+            >
+              ปิด
+            </MobileActionButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
         <header className="rounded-xl border border-white/70 bg-white/75 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -148,7 +263,24 @@ function StockOverviewContent() {
                 ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
               </p>
             </div>
-            <div className="grid w-full gap-3 sm:w-auto lg:flex">
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 lg:flex">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full gap-2 rounded-xl border-slate-200 bg-white/95 px-4 text-sm font-semibold shadow-sm shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                onClick={() => {
+                  setLocalHistory(getLocalRequisitionHistory())
+                  setLocalHistoryOpen(true)
+                }}
+              >
+                <UserRound className="h-4 w-4" />
+                ประวัติของฉัน
+                {localHistory.length > 0 ? (
+                  <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {localHistory.length}
+                  </span>
+                ) : null}
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -208,7 +340,7 @@ function StockOverviewContent() {
             </div>
             <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
+                <div className="min-w-0 lg:flex-1">
                   <div className="flex items-center gap-2 font-semibold text-blue-950">
                     <ShoppingCart className="h-5 w-5 text-blue-700" />
                     รายการที่เลือกไว้
@@ -241,11 +373,11 @@ function StockOverviewContent() {
                     </p>
                   )}
                 </div>
-                <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto">
+                <div className="grid w-full shrink-0 gap-2 sm:grid-cols-2 lg:w-auto lg:min-w-[430px]">
                   <MobileActionButton
                     asChild={selectedEquipment.length > 0}
                     disabled={selectedEquipment.length === 0}
-                    className="h-11 w-full gap-2 rounded-xl lg:w-auto"
+                    className="h-11 w-full gap-2 rounded-xl whitespace-nowrap"
                   >
                     {selectedEquipment.length > 0 ? (
                       <Link href={requisitionHref}>
@@ -264,7 +396,7 @@ function StockOverviewContent() {
                     variant="outline"
                     disabled={selectedEquipment.length === 0}
                     onClick={clearSelection}
-                    className="h-11 w-full gap-2 rounded-xl border-blue-100 bg-white lg:w-auto"
+                    className="h-11 w-full gap-2 rounded-xl border-blue-100 bg-white whitespace-nowrap"
                   >
                     <Trash2 className="h-4 w-4" />
                     ล้างรายการที่เลือก

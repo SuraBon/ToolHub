@@ -26,6 +26,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { apiGet, apiPost } from "@/lib/client-api"
+import {
+  buildLocalHistoryItems,
+  saveLocalRequisitionHistory,
+} from "@/lib/local-requisition-history"
 import { getErrorMessage, showApiErrorToast } from "@/lib/show-api-error-toast"
 import type { Equipment, RequisitionForm as RequisitionFormType } from "@/types"
 
@@ -124,6 +128,21 @@ function FormPageContent() {
       toast({
         title: "เสร็จแล้ว",
         description: `ส่งคำขอเบิกอุปกรณ์สำเร็จ เลขที่ใบเบิก: ${result.requisitionNumber}`,
+      })
+      saveLocalRequisitionHistory({
+        requisitionNumber: result.requisitionNumber,
+        requestedAt: new Date().toISOString(),
+        name: data.name,
+        department: data.department,
+        items: buildLocalHistoryItems(data, (item) => {
+          const selectedEquipment = equipment.find(
+            (equipmentItem) => equipmentItem.id === item.equipmentId
+          )
+
+          return item.isMainUnit
+            ? selectedEquipment?.mainUnit || selectedEquipment?.baseUnit || ""
+            : selectedEquipment?.baseUnit || ""
+        }),
       })
       setSuccessRequisitionNumber(result.requisitionNumber)
 
