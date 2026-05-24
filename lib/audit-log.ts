@@ -4,6 +4,7 @@ import {
   AUDIT_LOG_HEADERS,
   AUDIT_LOG_SHEET_NAME,
   auditLogAppendRange,
+  auditLogReadRange,
   headerRange,
 } from "@/lib/google-sheets-ranges"
 
@@ -12,6 +13,15 @@ type AuditLogEvent = {
   detail: string
   equipmentId?: string
   equipmentName?: string
+}
+
+export type AdminAuditLog = {
+  rowNumber: number
+  timestamp: string
+  action: string
+  detail: string
+  equipmentId: string
+  equipmentName: string
 }
 
 function formatAuditTimestamp(date: Date) {
@@ -93,4 +103,26 @@ export async function logAdminEvent(event: AuditLogEvent) {
   } catch (error) {
     console.error("Error writing audit log:", error)
   }
+}
+
+export async function getAdminAuditLogs(limit = 200): Promise<AdminAuditLog[]> {
+  const sheets = await ensureAuditLogSheetExists()
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: auditLogReadRange(),
+  })
+  const rows = response.data.values || []
+
+  return rows
+    .map((row, index) => ({
+      rowNumber: index + 2,
+      timestamp: String(row[0] || ""),
+      action: String(row[1] || ""),
+      detail: String(row[2] || ""),
+      equipmentId: String(row[3] || ""),
+      equipmentName: String(row[4] || ""),
+    }))
+    .slice(-limit)
+    .reverse()
 }

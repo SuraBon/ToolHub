@@ -16,6 +16,7 @@ import {
   Plus,
   QrCode,
   Search,
+  ScrollText,
   Shield,
   ShieldCheck,
   Trash2,
@@ -81,6 +82,7 @@ import type { Equipment } from "@/types"
 
 const INVENTORY_PAGE_SIZE = 10
 const HISTORY_PAGE_SIZE = 12
+const LOG_PAGE_SIZE = 20
 const HR_IDLE_TIMEOUT_MS = 60 * 60 * 1000
 const HR_SESSION_REFRESH_DEBOUNCE_MS = 60 * 1000
 const HR_SESSION_REFRESH_DELAY_MS = 750
@@ -113,6 +115,15 @@ type AuthResponse = {
 type EquipmentResponse = {
   success: boolean
   equipment: Equipment
+}
+
+interface AdminAuditLog {
+  rowNumber: number
+  timestamp: string
+  action: string
+  detail: string
+  equipmentId: string
+  equipmentName: string
 }
 
 type HrDashboardDataResponse = {
@@ -247,6 +258,22 @@ function groupMatchesSearch(group: RequisitionHistoryGroup, query: string) {
   return group.items.some((item) => historyMatchesSearch(item, query))
 }
 
+function auditLogMatchesSearch(item: AdminAuditLog, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+
+  return [
+    item.timestamp,
+    item.action,
+    item.detail,
+    item.equipmentId,
+    item.equipmentName,
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery)
+}
+
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
   if (!equipment) return emptyEquipmentDraft
   const ratio = equipment.ratio && equipment.ratio > 0 ? equipment.ratio : 0
@@ -283,7 +310,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [password, setPassword] = React.useState("")
   const [equipment, setEquipment] = React.useState<Equipment[]>([])
   const [history, setHistory] = React.useState<RequisitionHistory[]>([])
+  const [auditLogs, setAuditLogs] = React.useState<AdminAuditLog[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [loadingLogs, setLoadingLogs] = React.useState(false)
   const [savingEquipment, setSavingEquipment] = React.useState(false)
   const [savingHistory, setSavingHistory] = React.useState(false)
   const [deletingEquipment, setDeletingEquipment] = React.useState(false)
@@ -302,10 +331,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [managementFilter, setManagementFilter] =
     React.useState<StockFilter>("all")
   const [historySearch, setHistorySearch] = React.useState("")
+  const [logSearch, setLogSearch] = React.useState("")
   const [inventoryPage, setInventoryPage] = React.useState(1)
   const [historyPage, setHistoryPage] = React.useState(1)
+  const [logPage, setLogPage] = React.useState(1)
   const [activeTab, setActiveTab] =
-    React.useState<"equipment" | "history" | "monitoring">("equipment")
+    React.useState<"equipment" | "history" | "monitoring" | "logs">("equipment")
   const [editDialogOpen, setEditDialogOpen] = React.useState(false)
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false)
   const [editingEquipment, setEditingEquipment] =
@@ -350,6 +381,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const filteredHistoryGroups = React.useMemo(() => {
     return groupedHistory.filter((group) => groupMatchesSearch(group, historySearch))
   }, [groupedHistory, historySearch])
+  const filteredAuditLogs = React.useMemo(() => {
+    return auditLogs.filter((item) => auditLogMatchesSearch(item, logSearch))
+  }, [auditLogs, logSearch])
   const {
     currentPage: currentInventoryPage,
     items: paginatedEquipment,
@@ -358,6 +392,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     currentPage: currentHistoryPage,
     items: paginatedHistoryGroups,
   } = paginateItems(filteredHistoryGroups, historyPage, HISTORY_PAGE_SIZE)
+  const {
+    currentPage: currentLogPage,
+    items: paginatedAuditLogs,
+  } = paginateItems(filteredAuditLogs, logPage, LOG_PAGE_SIZE)
 
   React.useEffect(() => {
     setInventoryPage(1)
@@ -366,6 +404,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   React.useEffect(() => {
     setHistoryPage(1)
   }, [historySearch])
+
+  React.useEffect(() => {
+    setLogPage(1)
+  }, [logSearch])
 
   React.useEffect(() => {
     setRequestFormUrl(`${window.location.origin}/`)
@@ -520,6 +562,30 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     }
   }, [handleAuthenticatedError, toast])
 
+  const fetchAuditLogs = React.useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoadingLogs(true)
+    }
+    try {
+      const data = await apiGet<AdminAuditLog[]>("/api/audit-log", {
+        cache: "no-store",
+      })
+      setAuditLogs(Array.isArray(data) ? data : [])
+    } catch (error) {
+      if (handleAuthenticatedError(error)) return
+      console.error("Error fetching audit logs:", error)
+      showApiErrorToast({
+        toast,
+        error,
+        fallback: "ไม่สามารถดึงข้อมูล Log ได้",
+      })
+    } finally {
+      if (showLoading) {
+        setLoadingLogs(false)
+      }
+    }
+  }, [handleAuthenticatedError, toast])
+
   React.useEffect(() => {
     let cancelled = false
 
@@ -549,6 +615,14 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       cancelled = true
     }
   }, [fetchData])
+
+  React.useEffect(() => {
+    if (!isAuthenticated || activeTab !== "logs" || auditLogs.length > 0) {
+      return
+    }
+
+    void fetchAuditLogs()
+  }, [activeTab, auditLogs.length, fetchAuditLogs, isAuthenticated])
 
   React.useEffect(() => {
     if (!isAuthenticated || checkingAuth) {
@@ -950,7 +1024,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
       toast({
         title: "ยกเลิกการเบิกสำเร็จ",
-        description: cancelHistoryTarget.requisitionNumber,
+        description: `${cancelHistoryTarget.requisitionNumber} (1/1 รายการ)`,
       })
       setCancelHistoryProgress({ completed: 1, total: 1 })
       setCancelHistoryTarget(null)
@@ -1029,7 +1103,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
       toast({
         title: "ลบข้อมูลอุปกรณ์สำเร็จ",
-        description: deletedEquipmentName,
+        description: `ลบแล้ว 1 รายการ: ${deletedEquipmentName}`,
       })
       await fetchData(false)
       setEquipment((current) =>
@@ -1188,7 +1262,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <FileText className="h-4 w-4" />
-            ประวัติการเบิกอุปกรณ์
+            ประวัติ
           </Button>
           <Button
             type="button"
@@ -1197,7 +1271,16 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <Shield className="h-4 w-4" />
-            สถานะระบบ
+            สถานะ
+          </Button>
+          <Button
+            type="button"
+            variant={activeTab === "logs" ? "default" : "outline"}
+            onClick={() => setActiveTab("logs")}
+            className="h-11 gap-2 rounded-xl"
+          >
+            <ScrollText className="h-4 w-4" />
+            Log
           </Button>
           <Button
             type="button"
@@ -1206,7 +1289,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <QrCode className="h-4 w-4" />
-            QR หน้าหลักคลังอุปกรณ์
+            QR
           </Button>
         </div>
 
@@ -1226,7 +1309,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   className="h-11 w-full gap-2 rounded-xl sm:w-auto"
                 >
                   <Plus className="h-4 w-4" />
-                  เพิ่มรายการอุปกรณ์
+                  เพิ่ม
                 </MobileActionButton>
               </div>
             </CardHeader>
@@ -1550,7 +1633,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               )}
             </CardContent>
           </Card>
-        ) : (
+        ) : activeTab === "monitoring" ? (
           <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
             <CardHeader>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1567,7 +1650,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   className="h-11 w-full gap-2 rounded-xl sm:w-auto"
                 >
                   <Shield className="h-4 w-4" />
-                  ตรวจอีกครั้ง
+                  รีเฟรช
                 </Button>
               </div>
             </CardHeader>
@@ -1680,6 +1763,107 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               )}
             </CardContent>
           </Card>
+        ) : (
+          <Card className="border-white/80 bg-white/90 shadow-xl shadow-slate-200/70 backdrop-blur">
+            <CardHeader>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <CardTitle className="text-xl">Log การจัดการ</CardTitle>
+                  <CardDescription>
+                    ดูประวัติการเข้าสู่ระบบ การเพิ่ม แก้ไข ลบ และยกเลิกรายการ
+                  </CardDescription>
+                </div>
+                <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_auto] lg:max-w-xl">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={logSearch}
+                      onChange={(event) => setLogSearch(event.target.value)}
+                      placeholder="ค้นหาเวลา ประเภท รายละเอียด รหัส หรือชื่ออุปกรณ์"
+                      className="h-11 rounded-xl border-slate-200 bg-white pl-10"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fetchAuditLogs(false)}
+                    className="h-11 w-full gap-2 rounded-xl sm:w-auto"
+                  >
+                    <ScrollText className="h-4 w-4" />
+                    รีเฟรช
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingLogs ? (
+                <div className="py-8 text-center text-sm text-slate-600">
+                  กำลังโหลด Log...
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ยังไม่มี Log การจัดการ
+                </div>
+              ) : filteredAuditLogs.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                  ไม่พบ Log ที่ตรงกับคำค้น
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="whitespace-nowrap text-center">
+                            เวลา
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-center">
+                            ประเภท
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            รายละเอียด
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-center">
+                            รหัส
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            อุปกรณ์
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedAuditLogs.map((item) => (
+                          <TableRow key={item.rowNumber}>
+                            <TableCell className="whitespace-nowrap text-center text-sm">
+                              {item.timestamp}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-center">
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                {item.action || "-"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="min-w-64">{item.detail || "-"}</TableCell>
+                            <TableCell className="whitespace-nowrap text-center">
+                              {item.equipmentId || "-"}
+                            </TableCell>
+                            <TableCell className="min-w-48">
+                              {item.equipmentName || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    page={currentLogPage}
+                    pageSize={LOG_PAGE_SIZE}
+                    totalItems={filteredAuditLogs.length}
+                    onPageChange={setLogPage}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
@@ -1687,7 +1871,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-blue-600" />
-                QR หน้าหลักคลังอุปกรณ์
+                QR
               </DialogTitle>
               <DialogDescription>
                 สแกนเพื่อเปิดหน้าหลักคลังอุปกรณ์ หรือคัดลอกลิงก์ไปส่งให้ผู้ใช้งาน
@@ -2166,6 +2350,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               <p>
                 {cancelHistoryGroupTarget.name} · {cancelHistoryGroupTarget.department}
               </p>
+              <p className="font-semibold">
+                จำนวนที่จะลบ: {cancelHistoryGroupTarget.items.length} รายการ
+              </p>
               <div className="space-y-1">
                 {cancelingHistory && cancelHistoryProgress.total > 0 ? (
                   <p className="rounded-md bg-white/70 px-2 py-1 font-semibold text-rose-700">
@@ -2218,6 +2405,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               <p>
                 จำนวน {cancelHistoryTarget.amount} {cancelHistoryTarget.unit}
               </p>
+              <p className="font-semibold">
+                จำนวนที่จะลบ: 1 รายการ
+              </p>
             </div>
           )}
         </ConfirmActionDialog>
@@ -2243,6 +2433,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm">
               <p className="font-semibold text-red-950">{deleteTarget.name}</p>
               <p className="mt-1 text-red-800">รหัส: {deleteTarget.id}</p>
+              <p className="mt-1 font-semibold text-red-900">
+                จำนวนที่จะลบ: 1 รายการ
+              </p>
             </div>
           )}
         </ConfirmActionDialog>

@@ -69,3 +69,7 @@ export function historyRowsRange(startRowIndex: number, rowCount: number) {
 export function auditLogAppendRange() {
   return `${AUDIT_LOG_SHEET_NAME}!A:E`
 }
+
+export function auditLogReadRange() {
+  return `${AUDIT_LOG_SHEET_NAME}!A2:E`
+}

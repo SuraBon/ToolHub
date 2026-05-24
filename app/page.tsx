@@ -274,7 +274,7 @@ function StockOverviewContent() {
                 }}
               >
                 <UserRound className="h-4 w-4" />
-                ประวัติของฉัน
+                ประวัติ
                 {localHistory.length > 0 ? (
                   <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">
                     {localHistory.length}
@@ -291,7 +291,7 @@ function StockOverviewContent() {
                 }}
               >
                 <Settings className="h-4 w-4" />
-                จัดการคลังอุปกรณ์
+                จัดการ
               </Button>
             </div>
           </div>
@@ -343,7 +343,7 @@ function StockOverviewContent() {
                 <div className="min-w-0 lg:flex-1">
                   <div className="flex items-center gap-2 font-semibold text-blue-950">
                     <ShoppingCart className="h-5 w-5 text-blue-700" />
-                    รายการที่เลือกไว้
+                    ที่เลือก
                     <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">
                       {selectedEquipment.length}
                     </span>
@@ -382,12 +382,12 @@ function StockOverviewContent() {
                     {selectedEquipment.length > 0 ? (
                       <Link href={requisitionHref}>
                         <ClipboardList className="h-4 w-4" />
-                        ดำเนินการเบิก
+                        เบิก
                       </Link>
                     ) : (
                       <span className="inline-flex items-center gap-2">
                         <ClipboardList className="h-4 w-4" />
-                        ดำเนินการเบิก
+                        เบิก
                       </span>
                     )}
                   </MobileActionButton>
@@ -399,7 +399,7 @@ function StockOverviewContent() {
                     className="h-11 w-full gap-2 rounded-xl border-blue-100 bg-white whitespace-nowrap"
                   >
                     <Trash2 className="h-4 w-4" />
-                    ล้างรายการที่เลือก
+                    ล้าง
                   </MobileActionButton>
                 </div>
               </div>
@@ -499,7 +499,7 @@ function StockOverviewContent() {
             <MobileActionButton asChild className="h-11 gap-2 rounded-xl">
               <Link href={requisitionHref}>
                 <ClipboardList className="h-4 w-4" />
-                ดำเนินการเบิก
+                เบิก
               </Link>
             </MobileActionButton>
           </div>
