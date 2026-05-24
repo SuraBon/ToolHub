@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import {
+  cancelRequisitionHistoryGroup,
   cancelRequisitionHistory,
   getRequisitionHistoryData,
   updateRequisitionHistory,
@@ -13,6 +14,7 @@ import {
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
 import {
   validateRequisitionHistoryCancelPayload,
+  validateRequisitionHistoryGroupCancelPayload,
   validateRequisitionHistoryPayload,
 } from "@/lib/validation"
 
@@ -64,6 +66,22 @@ export async function DELETE(request: Request) {
     if (unauthorized) return unauthorized
 
     const { searchParams } = new URL(request.url)
+    const requisitionNumber = searchParams.get("requisitionNumber")
+
+    if (requisitionNumber) {
+      const payload = validateRequisitionHistoryGroupCancelPayload({
+        requisitionNumber,
+      })
+      const result = await cancelRequisitionHistoryGroup(payload)
+
+      await logAdminEvent({
+        action: "cancel_requisition_group",
+        detail: `ยกเลิกคำขอเบิก ${result.requisitionNumber} จำนวน ${result.canceledCount} รายการ`,
+      })
+
+      return refreshHrSessionCookie(jsonSuccess(result))
+    }
+
     const payload = validateRequisitionHistoryCancelPayload({
       rowNumber: searchParams.get("rowNumber"),
     })

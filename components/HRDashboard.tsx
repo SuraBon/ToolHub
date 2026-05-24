@@ -288,6 +288,10 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const [savingHistory, setSavingHistory] = React.useState(false)
   const [deletingEquipment, setDeletingEquipment] = React.useState(false)
   const [cancelingHistory, setCancelingHistory] = React.useState(false)
+  const [cancelHistoryProgress, setCancelHistoryProgress] = React.useState({
+    completed: 0,
+    total: 0,
+  })
   const [uploadingImage, setUploadingImage] = React.useState(false)
   const [imageEditor, setImageEditor] =
     React.useState<ImageEditorState | null>(null)
@@ -935,6 +939,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const handleCancelHistory = async () => {
     if (!cancelHistoryTarget) return
 
+    setCancelHistoryProgress({ completed: 0, total: 1 })
     setCancelingHistory(true)
     try {
       await apiDelete<{ success: boolean; history: RequisitionHistory }>(
@@ -947,6 +952,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         title: "ยกเลิกการเบิกสำเร็จ",
         description: cancelHistoryTarget.requisitionNumber,
       })
+      setCancelHistoryProgress({ completed: 1, total: 1 })
       setCancelHistoryTarget(null)
       void fetchData(false)
     } catch (error) {
@@ -959,25 +965,34 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       })
     } finally {
       setCancelingHistory(false)
+      setCancelHistoryProgress({ completed: 0, total: 0 })
     }
   }
 
   const handleCancelHistoryGroup = async () => {
     if (!cancelHistoryGroupTarget) return
 
+    const totalItems = cancelHistoryGroupTarget.items.length
+    setCancelHistoryProgress({ completed: 0, total: totalItems })
     setCancelingHistory(true)
     try {
-      for (const item of cancelHistoryGroupTarget.items) {
-        await apiDelete<{ success: boolean; history: RequisitionHistory }>(
-          `/api/requisition-history?rowNumber=${encodeURIComponent(
-            String(item.rowNumber)
-          )}`
-        )
-      }
+      const result = await apiDelete<{
+        success: boolean
+        requisitionNumber: string
+        canceledCount: number
+      }>(
+        `/api/requisition-history?requisitionNumber=${encodeURIComponent(
+          cancelHistoryGroupTarget.requisitionNumber
+        )}`
+      )
+      setCancelHistoryProgress({
+        completed: result.canceledCount || totalItems,
+        total: totalItems,
+      })
 
       toast({
         title: "ยกเลิกคำขอเบิกสำเร็จ",
-        description: cancelHistoryGroupTarget.requisitionNumber,
+        description: `${cancelHistoryGroupTarget.requisitionNumber} (${result.canceledCount || totalItems}/${totalItems} รายการ)`,
       })
       setCancelHistoryGroupTarget(null)
       setExpandedHistoryGroupKeys((current) => {
@@ -996,6 +1011,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       })
     } finally {
       setCancelingHistory(false)
+      setCancelHistoryProgress({ completed: 0, total: 0 })
     }
   }
 
@@ -2132,7 +2148,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           description="รายการทั้งหมดในคำขอนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์"
           cancelLabel="ไม่ดำเนินการ"
           confirmLabel="ยืนยันการยกเลิกคำขอ"
-          loadingLabel="กำลังยกเลิก..."
+          loadingLabel={
+            cancelHistoryProgress.total > 0
+              ? `กำลังยกเลิก... ${cancelHistoryProgress.completed}/${cancelHistoryProgress.total}`
+              : "กำลังยกเลิก..."
+          }
           variant="destructive"
           loading={cancelingHistory}
           onConfirm={handleCancelHistoryGroup}
@@ -2147,6 +2167,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 {cancelHistoryGroupTarget.name} · {cancelHistoryGroupTarget.department}
               </p>
               <div className="space-y-1">
+                {cancelingHistory && cancelHistoryProgress.total > 0 ? (
+                  <p className="rounded-md bg-white/70 px-2 py-1 font-semibold text-rose-700">
+                    ลบแล้ว {cancelHistoryProgress.completed}/{cancelHistoryProgress.total} รายการ
+                  </p>
+                ) : null}
                 {cancelHistoryGroupTarget.items.map((item) => (
                   <p key={item.rowNumber}>
                     {item.equipmentName} · {item.amount} {item.unit}
@@ -2169,7 +2194,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           description="รายการนี้จะถูกลบออกจากประวัติ และระบบจะคืนจำนวนที่เบิกกลับเข้าคลังอุปกรณ์"
           cancelLabel="ไม่ดำเนินการ"
           confirmLabel="ยืนยันการยกเลิก"
-          loadingLabel="กำลังยกเลิก..."
+          loadingLabel={
+            cancelHistoryProgress.total > 0
+              ? `กำลังยกเลิก... ${cancelHistoryProgress.completed}/${cancelHistoryProgress.total}`
+              : "กำลังยกเลิก..."
+          }
           variant="destructive"
           loading={cancelingHistory}
           onConfirm={handleCancelHistory}
@@ -2177,6 +2206,11 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
         >
           {cancelHistoryTarget && (
             <div className="space-y-1 rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-950">
+              {cancelingHistory && cancelHistoryProgress.total > 0 ? (
+                <p className="rounded-md bg-white/70 px-2 py-1 font-semibold text-rose-700">
+                  ลบแล้ว {cancelHistoryProgress.completed}/{cancelHistoryProgress.total} รายการ
+                </p>
+              ) : null}
               <p className="font-semibold">
                 {cancelHistoryTarget.requisitionNumber}
               </p>

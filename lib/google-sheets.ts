@@ -19,6 +19,7 @@ import { toBaseUnit } from "@/lib/unit-conversion"
 import { Equipment } from "@/types"
 import type {
   RequisitionHistoryCancelPayload,
+  RequisitionHistoryGroupCancelPayload,
   RequisitionHistoryPayload,
 } from "@/lib/validation"
 
@@ -852,4 +853,119 @@ export async function cancelRequisitionHistory(
 
   clearSheetsCache()
   return existingHistory
+}
+
+export async function cancelRequisitionHistoryGroup(
+  input: RequisitionHistoryGroupCancelPayload
+) {
+  const sheets = await getSheetsClient()
+  const spreadsheetId = requireEnv("SPREADSHEET_ID")
+  const [history, equipmentData] = await Promise.all([
+    getRequisitionHistoryData({ forceRefresh: true }),
+    getAllEquipmentData({ forceRefresh: true }),
+  ])
+  const targetRows = history
+    .filter((row) => row.requisitionNumber === input.requisitionNumber)
+    .sort((a, b) => b.rowNumber - a.rowNumber)
+
+  if (targetRows.length === 0) {
+    throw new Error("ไม่พบคำขอเบิกที่ต้องการยกเลิก")
+  }
+
+  const returnedBaseUnitsByEquipmentId = new Map<string, number>()
+
+  for (const row of targetRows) {
+    const equipment = getHistoryEquipmentMatch(equipmentData, row.equipmentName)
+
+    if (!equipment) {
+      throw new Error(`ไม่พบอุปกรณ์เดิมในสต๊อก: ${row.equipmentName}`)
+    }
+
+    const wasMainUnit = Boolean(
+      equipment.mainUnit && row.unit.trim() === equipment.mainUnit.trim()
+    )
+    const returnedBaseUnits = toBaseUnit(row.amount, wasMainUnit, equipment.ratio)
+
+    returnedBaseUnitsByEquipmentId.set(
+      equipment.id,
+      (returnedBaseUnitsByEquipmentId.get(equipment.id) || 0) + returnedBaseUnits
+    )
+  }
+
+  const stockUpdates = Array.from(returnedBaseUnitsByEquipmentId.entries()).map(
+    ([equipmentId, returnedBaseUnits]) => {
+      const equipmentIndex = equipmentData.findIndex((item) => item.id === equipmentId)
+      const equipment = equipmentData[equipmentIndex]
+
+      if (!equipment) {
+        throw new Error(`ไม่พบอุปกรณ์รหัส ${equipmentId}`)
+      }
+
+      const nextUsed = equipment.used - returnedBaseUnits
+      const nextRemaining = equipment.remaining + returnedBaseUnits
+
+      if (nextUsed < 0) {
+        throw new Error(
+          `ยอดเบิกไปแล้วของ ${equipment.name} น้อยกว่าจำนวนที่ต้องคืน`
+        )
+      }
+
+      return {
+        range: stockUsageRange(equipmentIndex + 2),
+        values: [[nextUsed, nextRemaining]],
+      }
+    }
+  )
+
+  const metadata = await withSheetsRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties",
+    })
+  )
+  const historySheet = metadata.data.sheets?.find(
+    (sheet) => sheet.properties?.title === HISTORY_SHEET_NAME
+  )
+  const sheetId = historySheet?.properties?.sheetId
+
+  if (sheetId === undefined || sheetId === null) {
+    throw new Error("ไม่พบชีตประวัติการเบิก")
+  }
+
+  if (stockUpdates.length > 0) {
+    await withSheetsRetry(() =>
+      sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: stockUpdates,
+        },
+      })
+    )
+  }
+
+  await withSheetsRetry(() =>
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: targetRows.map((row) => ({
+          deleteDimension: {
+            range: {
+              sheetId,
+              dimension: "ROWS",
+              startIndex: row.rowNumber - 1,
+              endIndex: row.rowNumber,
+            },
+          },
+        })),
+      },
+    })
+  )
+
+  clearSheetsCache()
+  return {
+    requisitionNumber: input.requisitionNumber,
+    canceledCount: targetRows.length,
+    history: targetRows,
+  }
 }

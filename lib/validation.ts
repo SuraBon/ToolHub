@@ -110,3 +110,15 @@ export type RequisitionHistoryCancelPayload = z.infer<
 export function validateRequisitionHistoryCancelPayload(input: unknown) {
   return RequisitionHistoryCancelPayloadSchema.parse(input)
 }
+
+export const RequisitionHistoryGroupCancelPayloadSchema = z.object({
+  requisitionNumber: z.string().trim().min(1, "กรุณาระบุเลขที่ใบเบิก"),
+})
+
+export type RequisitionHistoryGroupCancelPayload = z.infer<
+  typeof RequisitionHistoryGroupCancelPayloadSchema
+>
+
+export function validateRequisitionHistoryGroupCancelPayload(input: unknown) {
+  return RequisitionHistoryGroupCancelPayloadSchema.parse(input)
+}
