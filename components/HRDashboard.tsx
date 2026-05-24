@@ -15,6 +15,7 @@ import {
   Package,
   Plus,
   QrCode,
+  RefreshCw,
   Search,
   ScrollText,
   Shield,
@@ -317,6 +318,20 @@ function groupAuditLogs(items: AdminAuditLog[]) {
 
 function auditLogGroupMatchesSearch(group: AdminAuditLogGroup, query: string) {
   return group.items.some((item) => auditLogMatchesSearch(item, query))
+}
+
+function getAuditLogIcon(action: string) {
+  if (action.startsWith("add_")) return Plus
+  if (action.startsWith("update_")) return Edit
+  if (action.startsWith("delete_") || action.startsWith("cancel_")) return Trash2
+  if (action === "upload_image") return Upload
+  if (action === "hr_login_success") return ShieldCheck
+  if (action === "hr_logout") return LogOut
+  if (action === "hr_login_failed" || action === "hr_login_rate_limited") {
+    return AlertTriangle
+  }
+
+  return FileText
 }
 
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
@@ -1715,7 +1730,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                   onClick={() => fetchData(false)}
                   className="h-11 w-full gap-2 rounded-xl sm:w-auto"
                 >
-                  <Shield className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                   รีเฟรช
                 </Button>
               </div>
@@ -1855,7 +1870,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                     onClick={() => fetchAuditLogs(false)}
                     className="h-11 w-full gap-2 rounded-xl sm:w-auto"
                   >
-                    <ScrollText className="h-4 w-4" />
+                    <RefreshCw className="h-4 w-4" />
                     รีเฟรช
                   </Button>
                 </div>
@@ -1903,6 +1918,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                       <TableBody>
                         {paginatedAuditLogGroups.map((group) => {
                           const isExpanded = expandedAuditLogGroupKeys.has(group.key)
+                          const LogIcon = getAuditLogIcon(group.action)
 
                           return (
                             <React.Fragment key={group.key}>
@@ -1927,7 +1943,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                                   </button>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap text-center">
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                    <LogIcon className="h-3.5 w-3.5" />
                                     {group.action || "-"}
                                   </span>
                                 </TableCell>
