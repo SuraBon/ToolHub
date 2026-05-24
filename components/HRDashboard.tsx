@@ -1343,7 +1343,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <FileText className="h-4 w-4" />
-            ประวัติ
+            <span className="sm:hidden">ประวัติ</span>
+            <span className="hidden sm:inline">ประวัติการเบิกอุปกรณ์</span>
           </Button>
           <Button
             type="button"
@@ -1352,7 +1353,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <Shield className="h-4 w-4" />
-            สถานะ
+            <span className="sm:hidden">สถานะ</span>
+            <span className="hidden sm:inline">สถานะระบบ</span>
           </Button>
           <Button
             type="button"
@@ -1370,7 +1372,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
             className="h-11 gap-2 rounded-xl"
           >
             <QrCode className="h-4 w-4" />
-            QR
+            <span className="sm:hidden">QR</span>
+            <span className="hidden sm:inline">QR หน้าหลักคลังอุปกรณ์</span>
           </Button>
         </div>
 
