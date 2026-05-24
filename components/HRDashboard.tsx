@@ -126,6 +126,16 @@ interface AdminAuditLog {
   equipmentName: string
 }
 
+interface AdminAuditLogGroup {
+  key: string
+  latestTimestamp: string
+  action: string
+  detail: string
+  equipmentId: string
+  equipmentName: string
+  items: AdminAuditLog[]
+}
+
 type HrDashboardDataResponse = {
   equipment: Equipment[]
   history: RequisitionHistory[]
@@ -274,6 +284,41 @@ function auditLogMatchesSearch(item: AdminAuditLog, query: string) {
     .includes(normalizedQuery)
 }
 
+function groupAuditLogs(items: AdminAuditLog[]) {
+  const groups = new Map<string, AdminAuditLogGroup>()
+
+  items.forEach((item) => {
+    const key = [
+      item.action.trim().toLowerCase(),
+      item.detail.trim().toLowerCase(),
+      item.equipmentId.trim().toLowerCase(),
+      item.equipmentName.trim().toLowerCase(),
+    ].join("|")
+    const existingGroup = groups.get(key)
+
+    if (existingGroup) {
+      existingGroup.items.push(item)
+      return
+    }
+
+    groups.set(key, {
+      key,
+      latestTimestamp: item.timestamp,
+      action: item.action,
+      detail: item.detail,
+      equipmentId: item.equipmentId,
+      equipmentName: item.equipmentName,
+      items: [item],
+    })
+  })
+
+  return Array.from(groups.values())
+}
+
+function auditLogGroupMatchesSearch(group: AdminAuditLogGroup, query: string) {
+  return group.items.some((item) => auditLogMatchesSearch(item, query))
+}
+
 function toEquipmentDraft(equipment: Equipment | null): EquipmentDraft {
   if (!equipment) return emptyEquipmentDraft
   const ratio = equipment.ratio && equipment.ratio > 0 ? equipment.ratio : 0
@@ -350,6 +395,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     React.useState<RequisitionHistoryGroup | null>(null)
   const [expandedHistoryGroupKeys, setExpandedHistoryGroupKeys] =
     React.useState<Set<string>>(() => new Set())
+  const [expandedAuditLogGroupKeys, setExpandedAuditLogGroupKeys] =
+    React.useState<Set<string>>(() => new Set())
   const [equipmentDraft, setEquipmentDraft] =
     React.useState<EquipmentDraft>(emptyEquipmentDraft)
   const [systemStatus, setSystemStatus] = React.useState<SystemStatus | null>(
@@ -381,9 +428,18 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const filteredHistoryGroups = React.useMemo(() => {
     return groupedHistory.filter((group) => groupMatchesSearch(group, historySearch))
   }, [groupedHistory, historySearch])
-  const filteredAuditLogs = React.useMemo(() => {
-    return auditLogs.filter((item) => auditLogMatchesSearch(item, logSearch))
-  }, [auditLogs, logSearch])
+  const groupedAuditLogs = React.useMemo(() => {
+    return groupAuditLogs(auditLogs)
+  }, [auditLogs])
+  const filteredAuditLogGroups = React.useMemo(() => {
+    return groupedAuditLogs.filter((group) =>
+      auditLogGroupMatchesSearch(group, logSearch)
+    )
+  }, [groupedAuditLogs, logSearch])
+  const {
+    currentPage: currentLogPage,
+    items: paginatedAuditLogGroups,
+  } = paginateItems(filteredAuditLogGroups, logPage, LOG_PAGE_SIZE)
   const {
     currentPage: currentInventoryPage,
     items: paginatedEquipment,
@@ -392,10 +448,6 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
     currentPage: currentHistoryPage,
     items: paginatedHistoryGroups,
   } = paginateItems(filteredHistoryGroups, historyPage, HISTORY_PAGE_SIZE)
-  const {
-    currentPage: currentLogPage,
-    items: paginatedAuditLogs,
-  } = paginateItems(filteredAuditLogs, logPage, LOG_PAGE_SIZE)
 
   React.useEffect(() => {
     setInventoryPage(1)
@@ -935,6 +987,20 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
   const toggleHistoryGroup = (groupKey: string) => {
     setExpandedHistoryGroupKeys((current) => {
+      const next = new Set(current)
+
+      if (next.has(groupKey)) {
+        next.delete(groupKey)
+      } else {
+        next.add(groupKey)
+      }
+
+      return next
+    })
+  }
+
+  const toggleAuditLogGroup = (groupKey: string) => {
+    setExpandedAuditLogGroupKeys((current) => {
       const next = new Set(current)
 
       if (next.has(groupKey)) {
@@ -1804,7 +1870,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
                   ยังไม่มี Log การจัดการ
                 </div>
-              ) : filteredAuditLogs.length === 0 ? (
+              ) : filteredAuditLogGroups.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-slate-500">
                   ไม่พบ Log ที่ตรงกับคำค้น
                 </div>
@@ -1816,6 +1882,9 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                         <TableRow>
                           <TableHead className="whitespace-nowrap text-center">
                             เวลา
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap text-center">
+                            ชุด
                           </TableHead>
                           <TableHead className="whitespace-nowrap text-center">
                             ประเภท
@@ -1832,32 +1901,83 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedAuditLogs.map((item) => (
-                          <TableRow key={item.rowNumber}>
-                            <TableCell className="whitespace-nowrap text-center text-sm">
-                              {item.timestamp}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-center">
-                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                                {item.action || "-"}
-                              </span>
-                            </TableCell>
-                            <TableCell className="min-w-64">{item.detail || "-"}</TableCell>
-                            <TableCell className="whitespace-nowrap text-center">
-                              {item.equipmentId || "-"}
-                            </TableCell>
-                            <TableCell className="min-w-48">
-                              {item.equipmentName || "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {paginatedAuditLogGroups.map((group) => {
+                          const isExpanded = expandedAuditLogGroupKeys.has(group.key)
+
+                          return (
+                            <React.Fragment key={group.key}>
+                              <TableRow>
+                                <TableCell className="whitespace-nowrap text-center text-sm">
+                                  {group.latestTimestamp}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAuditLogGroup(group.key)}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-default disabled:hover:bg-blue-50"
+                                    disabled={group.items.length <= 1}
+                                    aria-expanded={isExpanded}
+                                  >
+                                    <ChevronDown
+                                      className={`h-3.5 w-3.5 transition-transform ${
+                                        isExpanded ? "rotate-180" : ""
+                                      }`}
+                                    />
+                                    {group.items.length} รายการ
+                                  </button>
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-center">
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                    {group.action || "-"}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="min-w-64">
+                                  {group.detail || "-"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-center">
+                                  {group.equipmentId || "-"}
+                                </TableCell>
+                                <TableCell className="min-w-48">
+                                  {group.equipmentName || "-"}
+                                </TableCell>
+                              </TableRow>
+                              {isExpanded
+                                ? group.items.map((item) => (
+                                    <TableRow
+                                      key={item.rowNumber}
+                                      className="bg-slate-50/70"
+                                    >
+                                      <TableCell className="whitespace-nowrap text-center text-sm">
+                                        {item.timestamp}
+                                      </TableCell>
+                                      <TableCell className="text-center text-xs text-slate-500">
+                                        แถว {item.rowNumber}
+                                      </TableCell>
+                                      <TableCell className="whitespace-nowrap text-center">
+                                        {item.action || "-"}
+                                      </TableCell>
+                                      <TableCell className="min-w-64">
+                                        {item.detail || "-"}
+                                      </TableCell>
+                                      <TableCell className="whitespace-nowrap text-center">
+                                        {item.equipmentId || "-"}
+                                      </TableCell>
+                                      <TableCell className="min-w-48">
+                                        {item.equipmentName || "-"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                : null}
+                            </React.Fragment>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </div>
                   <PaginationControls
                     page={currentLogPage}
                     pageSize={LOG_PAGE_SIZE}
-                    totalItems={filteredAuditLogs.length}
+                    totalItems={filteredAuditLogGroups.length}
                     onPageChange={setLogPage}
                   />
                 </div>
