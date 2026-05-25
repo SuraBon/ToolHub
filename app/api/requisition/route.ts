@@ -8,11 +8,9 @@ import { formatThaiDate } from "@/lib/date-format"
 import {
   findRequisitionHistoryByNumber,
   findRequisitionHistoryByRequestId,
-  getEquipmentData,
-  saveRequisitionBatch,
+  saveRequisition,
 } from "@/lib/google-sheets"
 import { createIdempotencyCache } from "@/lib/idempotency-cache"
-import { calculateStockUpdates } from "@/lib/stock-calculation"
 import { validateRequisitionPayload } from "@/lib/validation"
 
 const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000
@@ -33,6 +31,12 @@ function getRequestId(body: unknown) {
 
   const requestId = String((body as { requestId?: unknown }).requestId || "").trim()
   return /^[A-Za-z0-9_-]{8,128}$/.test(requestId) ? requestId : ""
+}
+
+function generateRequisitionNumber() {
+  const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()
+
+  return `REQ${Date.now()}-${suffix}`
 }
 
 function responseFromExistingHistory(
@@ -84,18 +88,14 @@ async function processRequisition(
       return existingResponse
     }
 
-    const equipmentData = await getEquipmentData({ forceRefresh: true })
     const currentDate = new Date()
-    const { stockUpdates, historyRows } = calculateStockUpdates(
-      requisition,
-      equipmentData,
-      requisitionNumber,
-      formatThaiDate(currentDate),
-      requestId
-    )
-
     writeAttempted = true
-    await saveRequisitionBatch({ stockUpdates, historyRows })
+    await saveRequisition({
+      requisition,
+      requisitionNumber,
+      formattedDate: formatThaiDate(currentDate),
+      requestId,
+    })
 
     const responseData = {
       requisitionNumber,
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const requisitionNumber = `REQ${Date.now()}`
+    const requisitionNumber = generateRequisitionNumber()
     const processing = processRequisition(body, requestId, requisitionNumber)
 
     if (!requestId) {

@@ -15,9 +15,11 @@ import {
 } from "@/lib/google-sheets-ranges"
 import { requireEnv } from "@/lib/env"
 import { isGoogleSheetsQuotaError } from "@/lib/google-sheets-errors"
+import { calculateStockUpdates } from "@/lib/stock-calculation"
 import { toBaseUnit } from "@/lib/unit-conversion"
 import { Equipment } from "@/types"
 import type {
+  RequisitionPayload,
   RequisitionHistoryCancelPayload,
   RequisitionHistoryGroupCancelPayload,
   RequisitionHistoryPayload,
@@ -603,6 +605,44 @@ export async function saveRequisitionBatch(input: {
   const queuedSave = requisitionWriteQueue.then(
     () => executeSaveRequisitionBatch(input),
     () => executeSaveRequisitionBatch(input)
+  )
+  requisitionWriteQueue = queuedSave.catch(() => undefined)
+
+  return queuedSave
+}
+
+async function executeSaveRequisition({
+  requisition,
+  requisitionNumber,
+  formattedDate,
+  requestId,
+}: {
+  requisition: RequisitionPayload
+  requisitionNumber: string
+  formattedDate: string
+  requestId?: string
+}) {
+  const equipmentData = await getAllEquipmentData({ forceRefresh: true })
+  const { stockUpdates, historyRows } = calculateStockUpdates(
+    requisition,
+    equipmentData,
+    requisitionNumber,
+    formattedDate,
+    requestId
+  )
+
+  await executeSaveRequisitionBatch({ stockUpdates, historyRows })
+}
+
+export async function saveRequisition(input: {
+  requisition: RequisitionPayload
+  requisitionNumber: string
+  formattedDate: string
+  requestId?: string
+}) {
+  const queuedSave = requisitionWriteQueue.then(
+    () => executeSaveRequisition(input),
+    () => executeSaveRequisition(input)
   )
   requisitionWriteQueue = queuedSave.catch(() => undefined)
 
