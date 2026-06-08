@@ -58,6 +58,7 @@ let historyCache: CacheEntry<HistoryRow[]> | null = null
 let equipmentReadPromise: Promise<Equipment[]> | null = null
 let historyReadPromise: Promise<HistoryRow[]> | null = null
 let sheetsWriteQueue: Promise<unknown> = Promise.resolve()
+let workbookSetupCompleted = false
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -198,6 +199,7 @@ async function ensureSheetExists(
 }
 
 export async function ensureWorkbookSetup() {
+  if (workbookSetupCompleted) return
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
@@ -205,6 +207,7 @@ export async function ensureWorkbookSetup() {
     ensureSheetExists(sheets, spreadsheetId, STOCK_SHEET_NAME, STOCK_HEADERS),
     ensureSheetExists(sheets, spreadsheetId, HISTORY_SHEET_NAME, HISTORY_HEADERS),
   ])
+  workbookSetupCompleted = true
 }
 
 function toNumber(value: unknown, fallback = 0) {
@@ -352,6 +355,7 @@ function validateEquipmentInput(equipment: Equipment) {
 }
 
 async function readAllEquipmentData(forceRefresh: boolean) {
+  await ensureWorkbookSetup()
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 
@@ -405,6 +409,7 @@ export async function getAllEquipmentData({ forceRefresh = false }: ReadOptions 
 }
 
 async function readRequisitionHistoryData(forceRefresh: boolean) {
+  await ensureWorkbookSetup()
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
 

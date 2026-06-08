@@ -46,11 +46,11 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { password } = body
 
-    const correctPassword = requireEnv("HR_PASSWORD")
-
     if (!isHrPasswordConfigured()) {
       return jsonError("ยังไม่ได้ตั้งค่า HR_PASSWORD", 500)
     }
+
+    const correctPassword = requireEnv("HR_PASSWORD")
 
     if (password === correctPassword) {
       clearRateLimit(clientKey)

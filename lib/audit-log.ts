@@ -32,8 +32,15 @@ function formatAuditTimestamp(date: Date) {
   }).format(date)
 }
 
+let auditLogSheetExists = false
+
 async function ensureAuditLogSheetExists() {
   const sheets = await getSheetsClient()
+
+  if (auditLogSheetExists) {
+    return sheets
+  }
+
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const metadata = await sheets.spreadsheets.get({
     spreadsheetId,
@@ -76,6 +83,7 @@ async function ensureAuditLogSheetExists() {
     },
   })
 
+  auditLogSheetExists = true
   return sheets
 }
 
