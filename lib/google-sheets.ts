@@ -44,12 +44,20 @@ type SheetValueUpdate = {
   values: unknown[][]
 }
 
+type SheetMetadata = {
+  sheets?: Array<{
+    properties?: {
+      title?: string | null
+      sheetId?: number | null
+    } | null
+  }> | null
+}
+
 let equipmentCache: CacheEntry<Equipment[]> | null = null
 let historyCache: CacheEntry<HistoryRow[]> | null = null
 let equipmentReadPromise: Promise<Equipment[]> | null = null
 let historyReadPromise: Promise<HistoryRow[]> | null = null
-let equipmentAppendQueue: Promise<unknown> = Promise.resolve()
-let requisitionWriteQueue: Promise<unknown> = Promise.resolve()
+let sheetsWriteQueue: Promise<unknown> = Promise.resolve()
 
 type EquipmentInput = Omit<
   Partial<Equipment>,
@@ -87,6 +95,13 @@ function clearHistoryCache() {
 function clearSheetsCache() {
   clearEquipmentCache()
   clearHistoryCache()
+}
+
+function queueSheetsWrite<T>(operation: () => Promise<T>) {
+  const queuedWrite = sheetsWriteQueue.then(operation, operation)
+  sheetsWriteQueue = queuedWrite.catch(() => undefined)
+
+  return queuedWrite
 }
 
 function sleep(ms: number) {
@@ -216,16 +231,20 @@ function mapEquipmentRow(row: string[], index: number): Equipment {
 }
 
 function mapHistoryRow(row: string[], index: number) {
+  const amountWithEquipmentId = Number(row[6])
+  const hasEquipmentIdColumn = Number.isFinite(amountWithEquipmentId)
+
   return {
     rowNumber: index + 2,
     requisitionNumber: row[0] || "",
     date: row[1] || "",
     name: row[2] || "",
     department: row[3] || "",
-    equipmentName: row[4] || "",
-    amount: toNumber(row[5]),
-    unit: row[6] || "",
-    requestId: row[7] || "",
+    equipmentId: hasEquipmentIdColumn ? row[4] || "" : "",
+    equipmentName: hasEquipmentIdColumn ? row[5] || "" : row[4] || "",
+    amount: hasEquipmentIdColumn ? toNumber(row[6]) : toNumber(row[5]),
+    unit: hasEquipmentIdColumn ? row[7] || "" : row[6] || "",
+    requestId: hasEquipmentIdColumn ? row[8] || "" : row[7] || "",
   }
 }
 
@@ -241,6 +260,52 @@ function equipmentToRow(equipment: Equipment) {
     equipment.mainUnit || "",
     equipment.ratio || "",
   ]
+}
+
+function getSheetId(metadata: SheetMetadata, sheetName: string) {
+  const sheet = metadata.sheets?.find(
+    (item) => item.properties?.title === sheetName
+  )
+  const sheetId = sheet?.properties?.sheetId
+
+  if (sheetId === undefined || sheetId === null) {
+    throw new Error(`ไม่พบชีต${sheetName}`)
+  }
+
+  return sheetId
+}
+
+function stockUsageCellsUpdateRequest({
+  sheetId,
+  rowIndex,
+  used,
+  remaining,
+}: {
+  sheetId: number
+  rowIndex: number
+  used: number
+  remaining: number
+}) {
+  return {
+    updateCells: {
+      range: {
+        sheetId,
+        startRowIndex: rowIndex - 1,
+        endRowIndex: rowIndex,
+        startColumnIndex: 4,
+        endColumnIndex: 6,
+      },
+      rows: [
+        {
+          values: [
+            { userEnteredValue: { numberValue: used } },
+            { userEnteredValue: { numberValue: remaining } },
+          ],
+        },
+      ],
+      fields: "userEnteredValue",
+    },
+  }
 }
 
 function normalizeEquipmentInput(
@@ -414,13 +479,7 @@ function generateNextEquipmentId(equipment: Equipment[]) {
 }
 
 export async function appendEquipment(input: EquipmentInput) {
-  const queuedAppend = equipmentAppendQueue.then(
-    () => appendEquipmentFixedRow(input),
-    () => appendEquipmentFixedRow(input)
-  )
-  equipmentAppendQueue = queuedAppend.catch(() => undefined)
-
-  return queuedAppend
+  return queueSheetsWrite(() => appendEquipmentFixedRow(input))
 }
 
 async function appendEquipmentFixedRow(input: EquipmentInput) {
@@ -455,6 +514,10 @@ async function appendEquipmentFixedRow(input: EquipmentInput) {
 }
 
 export async function updateEquipment(equipmentId: string, input: EquipmentInput) {
+  return queueSheetsWrite(() => updateEquipmentFixedRow(equipmentId, input))
+}
+
+async function updateEquipmentFixedRow(equipmentId: string, input: EquipmentInput) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
@@ -486,10 +549,17 @@ export async function updateEquipment(equipmentId: string, input: EquipmentInput
   )
 
   clearEquipmentCache()
-  return equipment
+  return {
+    equipment,
+    previousEquipment: existingEquipment[rowIndex],
+  }
 }
 
 export async function deleteEquipment(equipmentId: string) {
+  return queueSheetsWrite(() => deleteEquipmentFixedRow(equipmentId))
+}
+
+async function deleteEquipmentFixedRow(equipmentId: string) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const existingEquipment = await getAllEquipmentData({ forceRefresh: true })
@@ -602,13 +672,7 @@ export async function saveRequisitionBatch(input: {
   stockUpdates: SheetValueUpdate[]
   historyRows: unknown[][]
 }) {
-  const queuedSave = requisitionWriteQueue.then(
-    () => executeSaveRequisitionBatch(input),
-    () => executeSaveRequisitionBatch(input)
-  )
-  requisitionWriteQueue = queuedSave.catch(() => undefined)
-
-  return queuedSave
+  return queueSheetsWrite(() => executeSaveRequisitionBatch(input))
 }
 
 async function executeSaveRequisition({
@@ -640,26 +704,38 @@ export async function saveRequisition(input: {
   formattedDate: string
   requestId?: string
 }) {
-  const queuedSave = requisitionWriteQueue.then(
-    () => executeSaveRequisition(input),
-    () => executeSaveRequisition(input)
-  )
-  requisitionWriteQueue = queuedSave.catch(() => undefined)
-
-  return queuedSave
+  return queueSheetsWrite(() => executeSaveRequisition(input))
 }
 
 function getHistoryEquipmentMatch(
   equipmentData: Equipment[],
-  equipmentName: string
+  history: Pick<HistoryRow, "equipmentId" | "equipmentName">
 ) {
-  const normalizedName = equipmentName.trim().toLowerCase()
+  const normalizedId = history.equipmentId.trim().toLowerCase()
+
+  if (normalizedId) {
+    const equipmentById = equipmentData.find(
+      (equipment) => equipment.id.trim().toLowerCase() === normalizedId
+    )
+
+    if (equipmentById) {
+      return equipmentById
+    }
+  }
+
+  const normalizedName = history.equipmentName.trim().toLowerCase()
   return equipmentData.find(
     (equipment) => equipment.name.trim().toLowerCase() === normalizedName
   )
 }
 
 export async function updateRequisitionHistory(
+  input: RequisitionHistoryPayload
+) {
+  return queueSheetsWrite(() => updateRequisitionHistoryFixedRow(input))
+}
+
+async function updateRequisitionHistoryFixedRow(
   input: RequisitionHistoryPayload
 ) {
   const sheets = await getSheetsClient()
@@ -674,10 +750,7 @@ export async function updateRequisitionHistory(
     throw new Error("ไม่พบประวัติการเบิกที่ต้องการแก้ไข")
   }
 
-  const previousEquipment = getHistoryEquipmentMatch(
-    equipmentData,
-    existingHistory.equipmentName
-  )
+  const previousEquipment = getHistoryEquipmentMatch(equipmentData, existingHistory)
 
   if (!previousEquipment) {
     throw new Error(
@@ -757,6 +830,7 @@ export async function updateRequisitionHistory(
     input.date,
     input.name,
     input.department,
+    nextEquipment.id,
     nextEquipment.name,
     input.amount,
     input.isMainUnit && nextEquipment.mainUnit
@@ -800,6 +874,12 @@ export async function updateRequisitionHistory(
 export async function cancelRequisitionHistory(
   input: RequisitionHistoryCancelPayload
 ) {
+  return queueSheetsWrite(() => cancelRequisitionHistoryFixedRow(input))
+}
+
+async function cancelRequisitionHistoryFixedRow(
+  input: RequisitionHistoryCancelPayload
+) {
   const sheets = await getSheetsClient()
   const spreadsheetId = requireEnv("SPREADSHEET_ID")
   const [history, equipmentData] = await Promise.all([
@@ -812,10 +892,7 @@ export async function cancelRequisitionHistory(
     throw new Error("ไม่พบประวัติการเบิกที่ต้องการยกเลิก")
   }
 
-  const equipment = getHistoryEquipmentMatch(
-    equipmentData,
-    existingHistory.equipmentName
-  )
+  const equipment = getHistoryEquipmentMatch(equipmentData, existingHistory)
 
   if (!equipment) {
     throw new Error(
@@ -851,35 +928,24 @@ export async function cancelRequisitionHistory(
       fields: "sheets.properties",
     })
   )
-  const historySheet = metadata.data.sheets?.find(
-    (sheet) => sheet.properties?.title === HISTORY_SHEET_NAME
-  )
-  const sheetId = historySheet?.properties?.sheetId
-
-  if (sheetId === undefined || sheetId === null) {
-    throw new Error("ไม่พบชีตประวัติการเบิก")
-  }
-
-  await withSheetsRetry(() =>
-    sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: stockUsageRange(equipmentIndex + 2),
-      valueInputOption: "USER_ENTERED",
-      requestBody: {
-        values: [[nextUsed, nextRemaining]],
-      },
-    })
-  )
+  const stockSheetId = getSheetId(metadata.data, STOCK_SHEET_NAME)
+  const historySheetId = getSheetId(metadata.data, HISTORY_SHEET_NAME)
 
   await withSheetsRetry(() =>
     sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
         requests: [
+          stockUsageCellsUpdateRequest({
+            sheetId: stockSheetId,
+            rowIndex: equipmentIndex + 2,
+            used: nextUsed,
+            remaining: nextRemaining,
+          }),
           {
             deleteDimension: {
               range: {
-                sheetId,
+                sheetId: historySheetId,
                 dimension: "ROWS",
                 startIndex: input.rowNumber - 1,
                 endIndex: input.rowNumber,
@@ -896,6 +962,12 @@ export async function cancelRequisitionHistory(
 }
 
 export async function cancelRequisitionHistoryGroup(
+  input: RequisitionHistoryGroupCancelPayload
+) {
+  return queueSheetsWrite(() => cancelRequisitionHistoryGroupFixedRows(input))
+}
+
+async function cancelRequisitionHistoryGroupFixedRows(
   input: RequisitionHistoryGroupCancelPayload
 ) {
   const sheets = await getSheetsClient()
@@ -915,7 +987,7 @@ export async function cancelRequisitionHistoryGroup(
   const returnedBaseUnitsByEquipmentId = new Map<string, number>()
 
   for (const row of targetRows) {
-    const equipment = getHistoryEquipmentMatch(equipmentData, row.equipmentName)
+    const equipment = getHistoryEquipmentMatch(equipmentData, row)
 
     if (!equipment) {
       throw new Error(`ไม่พบอุปกรณ์เดิมในสต๊อก: ${row.equipmentName}`)
@@ -963,41 +1035,41 @@ export async function cancelRequisitionHistoryGroup(
       fields: "sheets.properties",
     })
   )
-  const historySheet = metadata.data.sheets?.find(
-    (sheet) => sheet.properties?.title === HISTORY_SHEET_NAME
-  )
-  const sheetId = historySheet?.properties?.sheetId
-
-  if (sheetId === undefined || sheetId === null) {
-    throw new Error("ไม่พบชีตประวัติการเบิก")
-  }
-
-  if (stockUpdates.length > 0) {
-    await withSheetsRetry(() =>
-      sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          valueInputOption: "USER_ENTERED",
-          data: stockUpdates,
-        },
-      })
-    )
-  }
+  const stockSheetId = getSheetId(metadata.data, STOCK_SHEET_NAME)
+  const historySheetId = getSheetId(metadata.data, HISTORY_SHEET_NAME)
 
   await withSheetsRetry(() =>
     sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
-        requests: targetRows.map((row) => ({
-          deleteDimension: {
-            range: {
-              sheetId,
-              dimension: "ROWS",
-              startIndex: row.rowNumber - 1,
-              endIndex: row.rowNumber,
+        requests: [
+          ...stockUpdates.map((update) => {
+            const match = update.range.match(/![A-Z]+(\d+):[A-Z]+\d+$/)
+            const rowIndex = match ? Number(match[1]) : 0
+            const [used, remaining] = update.values[0] || []
+
+            if (!rowIndex || typeof used !== "number" || typeof remaining !== "number") {
+              throw new Error("ข้อมูลคืนสต๊อกไม่ถูกต้อง")
+            }
+
+            return stockUsageCellsUpdateRequest({
+              sheetId: stockSheetId,
+              rowIndex,
+              used,
+              remaining,
+            })
+          }),
+          ...targetRows.map((row) => ({
+            deleteDimension: {
+              range: {
+                sheetId: historySheetId,
+                dimension: "ROWS",
+                startIndex: row.rowNumber - 1,
+                endIndex: row.rowNumber,
+              },
             },
-          },
-        })),
+          })),
+        ],
       },
     })
   )

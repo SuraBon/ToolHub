@@ -73,6 +73,7 @@ function FormPageContent() {
   const [stockError, setStockError] = React.useState("")
   const [successRequisitionNumber, setSuccessRequisitionNumber] = React.useState("")
   const submittingRef = React.useRef(false)
+  const requestIdRef = React.useRef(createRequestId())
   const redirectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const { toast } = useToast()
   const initialEquipmentIds = React.useMemo(
@@ -121,7 +122,7 @@ function FormPageContent() {
     try {
       const result = await apiPost<RequisitionResponse>("/api/requisition", {
         ...data,
-        requestId: createRequestId(),
+        requestId: requestIdRef.current,
       })
       submittedSuccessfully = true
 

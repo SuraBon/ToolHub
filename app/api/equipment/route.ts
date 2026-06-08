@@ -1,3 +1,5 @@
+import { del } from "@vercel/blob"
+
 import { formatApiErrorMessage, jsonData, jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import {
@@ -8,7 +10,21 @@ import {
   updateEquipment,
 } from "@/lib/google-sheets"
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
+import { hasEnv } from "@/lib/env"
+import { isManagedEquipmentImageUrl } from "@/lib/image-upload"
 import { validateEquipmentPayload } from "@/lib/validation"
+
+async function deleteManagedEquipmentImage(url: string) {
+  if (!hasEnv("BLOB_READ_WRITE_TOKEN") || !isManagedEquipmentImageUrl(url)) {
+    return
+  }
+
+  try {
+    await del(url)
+  } catch (error) {
+    console.error("Error deleting equipment image:", { url, error })
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -59,7 +75,13 @@ export async function PUT(request: Request) {
     }
 
     const payload = validateEquipmentPayload({ ...body, id: equipmentId })
-    const equipment = await updateEquipment(equipmentId, payload)
+    const { equipment, previousEquipment } = await updateEquipment(equipmentId, payload)
+    if (
+      previousEquipment.image &&
+      previousEquipment.image !== equipment.image
+    ) {
+      await deleteManagedEquipmentImage(previousEquipment.image)
+    }
     await logAdminEvent({
       action: "update_equipment",
       detail: "แก้ไขข้อมูลอุปกรณ์",
@@ -87,6 +109,9 @@ export async function DELETE(request: Request) {
     }
 
     const equipment = await deleteEquipment(equipmentId)
+    if (equipment.image) {
+      await deleteManagedEquipmentImage(equipment.image)
+    }
     await logAdminEvent({
       action: "delete_equipment",
       detail: "ลบอุปกรณ์",

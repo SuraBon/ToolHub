@@ -74,6 +74,7 @@ describe("calculateStockUpdates", () => {
       "1 มกราคม 2569",
       "Tester",
       "IT",
+      equipment[0].id,
       equipment[0].name,
       1,
       equipment[0].baseUnit,

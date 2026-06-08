@@ -1,9 +1,13 @@
-import { put } from "@vercel/blob"
+import { del, put } from "@vercel/blob"
 
 import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import { refreshHrSessionCookie, requireHrSession } from "@/lib/hr-auth"
-import { generateSafeImageName, validateImageFile } from "@/lib/image-upload"
+import {
+  generateSafeImageName,
+  isManagedEquipmentImageUrl,
+  validateImageFile,
+} from "@/lib/image-upload"
 import { hasEnv } from "@/lib/env"
 
 export async function POST(request: Request) {
@@ -40,5 +44,34 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error uploading equipment image:", error)
     return jsonError("ไม่สามารถอัปโหลดรูปภาพได้", 500)
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const unauthorized = await requireHrSession()
+    if (unauthorized) return unauthorized
+
+    if (!hasEnv("BLOB_READ_WRITE_TOKEN")) {
+      return jsonError("ยังไม่ได้ตั้งค่า BLOB_READ_WRITE_TOKEN", 500)
+    }
+
+    const { searchParams } = new URL(request.url)
+    const url = searchParams.get("url")?.trim() || ""
+
+    if (!isManagedEquipmentImageUrl(url)) {
+      return jsonError("ไม่พบรูปภาพที่ระบบจัดการ", 400)
+    }
+
+    await del(url)
+    await logAdminEvent({
+      action: "delete_image",
+      detail: "ลบรูปภาพที่ไม่ได้ใช้งาน",
+    })
+
+    return refreshHrSessionCookie(jsonSuccess({}))
+  } catch (error) {
+    console.error("Error deleting equipment image:", error)
+    return jsonError("ไม่สามารถลบรูปภาพได้", 500)
   }
 }

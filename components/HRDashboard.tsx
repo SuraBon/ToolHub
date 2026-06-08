@@ -94,6 +94,7 @@ interface RequisitionHistory {
   date: string
   name: string
   department: string
+  equipmentId: string
   equipmentName: string
   amount: number
   unit: string
@@ -420,6 +421,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   const idleTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastRefreshAtRef = React.useRef(0)
+  const uploadedDraftImageUrlsRef = React.useRef<Set<string>>(new Set())
   const { toast } = useToast()
   const parsedRatio = Number(equipmentDraft.ratio) || 0
   const hasMainStockUnit = Boolean(equipmentDraft.mainUnit.trim() && parsedRatio > 0)
@@ -783,12 +785,14 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   }
 
   const openAddDialog = () => {
+    void cleanupUploadedDraftImages()
     setEditingEquipment(null)
     setEquipmentDraft(emptyEquipmentDraft)
     setEditDialogOpen(true)
   }
 
   const openEditDialog = (item: Equipment) => {
+    void cleanupUploadedDraftImages()
     setEditingEquipment(item)
     setEquipmentDraft(toEquipmentDraft(item))
     setEditDialogOpen(true)
@@ -799,6 +803,34 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       ...current,
       [field]: value,
     }))
+  }
+
+  const cleanupUploadedDraftImages = React.useCallback(
+    async (keepUrl = "") => {
+      const urlsToDelete = Array.from(uploadedDraftImageUrlsRef.current).filter(
+        (url) => url !== keepUrl
+      )
+
+      urlsToDelete.forEach((url) => uploadedDraftImageUrlsRef.current.delete(url))
+
+      await Promise.all(
+        urlsToDelete.map(async (url) => {
+          try {
+            await apiDelete(`/api/upload?url=${encodeURIComponent(url)}`)
+          } catch (error) {
+            if (!handleAuthenticatedError(error)) {
+              console.error("Error cleaning up draft image:", error)
+            }
+          }
+        })
+      )
+    },
+    [handleAuthenticatedError]
+  )
+
+  const closeEditDialog = () => {
+    setEditDialogOpen(false)
+    void cleanupUploadedDraftImages()
   }
 
   const resetImageEditor = React.useCallback(() => {
@@ -910,7 +942,12 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
 
       const result = await apiPost<UploadResponse>("/api/upload", formData)
 
+      const previousImageUrl = equipmentDraft.image
       updateDraft("image", result.url)
+      uploadedDraftImageUrlsRef.current.add(result.url)
+      if (previousImageUrl) {
+        void cleanupUploadedDraftImages(result.url)
+      }
       toast({
         title: "อัปโหลดรูปภาพสำเร็จ",
         description: "ระบบบันทึก URL รูปภาพเรียบร้อยแล้ว",
@@ -964,6 +1001,8 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       setEditDialogOpen(false)
       setEditingEquipment(null)
       setEquipmentDraft(emptyEquipmentDraft)
+      uploadedDraftImageUrlsRef.current.delete(savedEquipment?.image || "")
+      void cleanupUploadedDraftImages(savedEquipment?.image || "")
       void fetchData(false)
     } catch (error) {
       if (handleAuthenticatedError(error)) return
@@ -979,10 +1018,16 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
   }
 
   const openHistoryDialog = (item: RequisitionHistory) => {
-    const matchedEquipment = equipment.find(
-      (eq) =>
-        eq.name.trim().toLowerCase() === item.equipmentName.trim().toLowerCase()
-    )
+    const matchedEquipment =
+      equipment.find(
+        (eq) =>
+          item.equipmentId &&
+          eq.id.trim().toLowerCase() === item.equipmentId.trim().toLowerCase()
+      ) ||
+      equipment.find(
+        (eq) =>
+          eq.name.trim().toLowerCase() === item.equipmentName.trim().toLowerCase()
+      )
 
     setHistoryDraft({
       rowNumber: item.rowNumber,
@@ -2185,7 +2230,15 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <Dialog
+          open={editDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open)
+            if (!open) {
+              void cleanupUploadedDraftImages()
+            }
+          }}
+        >
           <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>
@@ -2442,7 +2495,7 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setEditDialogOpen(false)}
+                onClick={closeEditDialog}
                 disabled={savingEquipment}
                 className="w-full sm:w-auto"
               >

@@ -62,6 +62,7 @@ export function calculateStockUpdates(
       formattedDate,
       requisition.name,
       requisition.department,
+      equipment.id,
       equipment.name,
       item.amount,
       item.isMainUnit && equipment.mainUnit ? equipment.mainUnit : equipment.baseUnit,

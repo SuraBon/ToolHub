@@ -1,5 +1,6 @@
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const SAFE_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"])
+const MANAGED_IMAGE_PATH_PREFIX = "/equipment/"
 
 export function validateImageFile(file: File) {
   if (!file.type.startsWith("image/")) {
@@ -20,4 +21,15 @@ export function generateSafeImageName(fileName: string) {
     : "jpg"
 
   return `${Date.now()}-${crypto.randomUUID()}.${extension}`
+}
+
+export function isManagedEquipmentImageUrl(value: string) {
+  if (!value) return false
+
+  try {
+    const url = new URL(value)
+    return url.pathname.startsWith(MANAGED_IMAGE_PATH_PREFIX)
+  } catch {
+    return value.startsWith("equipment/")
+  }
 }
