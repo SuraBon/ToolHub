@@ -56,6 +56,34 @@ export function HistoryEditDialog({
   onSave,
   saving,
 }: HistoryEditDialogProps) {
+  const equipmentOptions = React.useMemo(() => {
+    if (!editingHistoryItem) return equipment
+
+    const hasMatch = equipment.some(
+      (eq) =>
+        (editingHistoryItem.equipmentId &&
+          eq.id.trim().toLowerCase() === editingHistoryItem.equipmentId.trim().toLowerCase()) ||
+        eq.name.trim().toLowerCase() === editingHistoryItem.equipmentName.trim().toLowerCase()
+    )
+
+    if (hasMatch) return equipment
+
+    // If not found in active equipment list, inject virtual equipment for deleted items
+    const virtualEquipment: Equipment = {
+      id: editingHistoryItem.equipmentId || `deleted-${Date.now()}`,
+      name: `${editingHistoryItem.equipmentName} (ไม่มีในคลัง)`,
+      image: "",
+      totalStock: 0,
+      used: 0,
+      remaining: 0,
+      baseUnit: editingHistoryItem.unit,
+      mainUnit: undefined,
+      ratio: undefined,
+    }
+
+    return [...equipment, virtualEquipment]
+  }, [equipment, editingHistoryItem])
+
   const getInitialValues = React.useCallback(
     (item: RequisitionHistory | null): HistoryEditFormValues => {
       if (!item) {
@@ -71,12 +99,12 @@ export function HistoryEditDialog({
       }
 
       const matchedEquipment =
-        equipment.find(
+        equipmentOptions.find(
           (eq) =>
             item.equipmentId &&
             eq.id.trim().toLowerCase() === item.equipmentId.trim().toLowerCase()
         ) ||
-        equipment.find(
+        equipmentOptions.find(
           (eq) =>
             eq.name.trim().toLowerCase() === item.equipmentName.trim().toLowerCase()
         )
@@ -90,11 +118,11 @@ export function HistoryEditDialog({
         amount: String(item.amount),
         isMainUnit: Boolean(
           matchedEquipment?.mainUnit &&
-            item.unit.trim() === matchedEquipment.mainUnit.trim()
+            item.unit.trim().toLowerCase() === matchedEquipment.mainUnit.trim().toLowerCase()
         ),
       }
     },
-    [equipment]
+    [equipmentOptions]
   )
 
   const {
@@ -120,11 +148,11 @@ export function HistoryEditDialog({
   const amountStr = watch("amount")
 
   const selectedHistoryEquipment = React.useMemo(() => {
-    return equipment.find((item) => item.id === equipmentId) || null
-  }, [equipment, equipmentId])
+    return equipmentOptions.find((item) => item.id === equipmentId) || null
+  }, [equipmentOptions, equipmentId])
 
   const handleEquipmentSelect = (id: string) => {
-    const nextEquipment = equipment.find((item) => item.id === id)
+    const nextEquipment = equipmentOptions.find((item) => item.id === id)
     setValue("equipmentId", id)
     setValue(
       "isMainUnit",
@@ -133,7 +161,7 @@ export function HistoryEditDialog({
   }
 
   const onSubmit = async (values: HistoryEditFormValues) => {
-    if (!editingHistoryItem) return
+    if (saving || !editingHistoryItem) return
     const payload = {
       rowNumber: editingHistoryItem.rowNumber,
       requisitionNumber: values.requisitionNumber,
@@ -189,7 +217,7 @@ export function HistoryEditDialog({
             <div className="space-y-2 sm:col-span-2">
               <Label>อุปกรณ์</Label>
               <EquipmentCombobox
-                equipment={equipment}
+                equipment={equipmentOptions}
                 value={equipmentId}
                 onSelect={handleEquipmentSelect}
                 disableUnavailable={false}

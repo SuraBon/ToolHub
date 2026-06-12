@@ -741,45 +741,45 @@ async function updateRequisitionHistoryFixedRow(
 
   const previousEquipment = getHistoryEquipmentMatch(equipmentData, existingHistory)
 
-  if (!previousEquipment) {
-    throw new Error(
-      `ไม่พบอุปกรณ์เดิมในสต๊อก: ${existingHistory.equipmentName}`
-    )
-  }
-
   const nextEquipment = equipmentData.find(
     (equipment) => equipment.id === input.equipmentId
   )
 
-  if (!nextEquipment) {
-    throw new Error("ไม่พบอุปกรณ์ที่ต้องการบันทึกในประวัติ")
-  }
-
-  if (input.isMainUnit && (!nextEquipment.mainUnit || !nextEquipment.ratio)) {
+  if (nextEquipment && input.isMainUnit && (!nextEquipment.mainUnit || !nextEquipment.ratio)) {
     throw new Error(`อุปกรณ์ ${nextEquipment.name} ไม่มีหน่วยใหญ่ให้เลือกเบิก`)
   }
 
   const previousWasMainUnit = Boolean(
-    previousEquipment.mainUnit &&
-      existingHistory.unit.trim() === previousEquipment.mainUnit.trim()
+    previousEquipment?.mainUnit &&
+      existingHistory.unit.trim().toLowerCase() === previousEquipment.mainUnit.trim().toLowerCase()
   )
-  const previousBaseUnits = toBaseUnit(
-    existingHistory.amount,
-    previousWasMainUnit,
-    previousEquipment.ratio
-  )
-  const nextBaseUnits = toBaseUnit(
-    input.amount,
-    input.isMainUnit,
-    nextEquipment.ratio
-  )
+  const previousBaseUnits = previousEquipment
+    ? toBaseUnit(
+        existingHistory.amount,
+        previousWasMainUnit,
+        previousEquipment.ratio
+      )
+    : 0
+
+  const nextBaseUnits = nextEquipment
+    ? toBaseUnit(
+        input.amount,
+        input.isMainUnit,
+        nextEquipment.ratio
+      )
+    : 0
+
   const stockDeltas = new Map<string, number>()
 
-  stockDeltas.set(previousEquipment.id, -previousBaseUnits)
-  stockDeltas.set(
-    nextEquipment.id,
-    (stockDeltas.get(nextEquipment.id) || 0) + nextBaseUnits
-  )
+  if (previousEquipment) {
+    stockDeltas.set(previousEquipment.id, -previousBaseUnits)
+  }
+  if (nextEquipment) {
+    stockDeltas.set(
+      nextEquipment.id,
+      (stockDeltas.get(nextEquipment.id) || 0) + nextBaseUnits
+    )
+  }
 
   const stockUpdates = Array.from(stockDeltas.entries()).map(
     ([equipmentId, delta]) => {
@@ -792,8 +792,8 @@ async function updateRequisitionHistoryFixedRow(
         throw new Error(`ไม่พบอุปกรณ์รหัส ${equipmentId}`)
       }
 
-      const nextUsed = equipment.used + delta
-      const nextRemaining = equipment.remaining - delta
+      const nextUsed = Number((equipment.used + delta).toFixed(4))
+      const nextRemaining = Number((equipment.remaining - delta).toFixed(4))
 
       if (nextUsed < 0) {
         throw new Error(
@@ -819,12 +819,14 @@ async function updateRequisitionHistoryFixedRow(
     input.date,
     input.name,
     input.department,
-    nextEquipment.id,
-    nextEquipment.name,
+    nextEquipment ? nextEquipment.id : input.equipmentId,
+    nextEquipment ? nextEquipment.name : existingHistory.equipmentName,
     input.amount,
-    input.isMainUnit && nextEquipment.mainUnit
-      ? nextEquipment.mainUnit
-      : nextEquipment.baseUnit,
+    nextEquipment
+      ? (input.isMainUnit && nextEquipment.mainUnit
+          ? nextEquipment.mainUnit
+          : nextEquipment.baseUnit)
+      : existingHistory.unit,
     existingHistory.requestId || "",
   ]
 
@@ -851,12 +853,13 @@ async function updateRequisitionHistoryFixedRow(
     date: input.date,
     name: input.name,
     department: input.department,
-    equipmentName: nextEquipment.name,
+    equipmentName: nextEquipment ? nextEquipment.name : existingHistory.equipmentName,
     amount: input.amount,
-    unit:
-      input.isMainUnit && nextEquipment.mainUnit
-        ? nextEquipment.mainUnit
-        : nextEquipment.baseUnit,
+    unit: nextEquipment
+      ? (input.isMainUnit && nextEquipment.mainUnit
+          ? nextEquipment.mainUnit
+          : nextEquipment.baseUnit)
+      : existingHistory.unit,
   }
 }
 
@@ -883,29 +886,26 @@ async function cancelRequisitionHistoryFixedRow(
 
   const equipment = getHistoryEquipmentMatch(equipmentData, existingHistory)
 
-  if (!equipment) {
-    throw new Error(
-      `ไม่พบอุปกรณ์เดิมในสต๊อก: ${existingHistory.equipmentName}`
-    )
-  }
+  const returnedBaseUnits = equipment
+    ? toBaseUnit(
+        existingHistory.amount,
+        Boolean(equipment.mainUnit && existingHistory.unit.trim().toLowerCase() === equipment.mainUnit.trim().toLowerCase()),
+        equipment.ratio
+      )
+    : 0
 
-  const wasMainUnit = Boolean(
-    equipment.mainUnit && existingHistory.unit.trim() === equipment.mainUnit.trim()
-  )
-  const returnedBaseUnits = toBaseUnit(
-    existingHistory.amount,
-    wasMainUnit,
-    equipment.ratio
-  )
-  const equipmentIndex = equipmentData.findIndex((item) => item.id === equipment.id)
-  const nextUsed = equipment.used - returnedBaseUnits
-  const nextRemaining = equipment.remaining + returnedBaseUnits
+  const equipmentIndex = equipment
+    ? equipmentData.findIndex((item) => item.id === equipment.id)
+    : -1
 
-  if (equipmentIndex === -1) {
+  const nextUsed = equipment ? Number((equipment.used - returnedBaseUnits).toFixed(4)) : 0
+  const nextRemaining = equipment ? Number((equipment.remaining + returnedBaseUnits).toFixed(4)) : 0
+
+  if (equipment && equipmentIndex === -1) {
     throw new Error(`ไม่พบอุปกรณ์รหัส ${equipment.id}`)
   }
 
-  if (nextUsed < 0) {
+  if (equipment && nextUsed < 0) {
     throw new Error(
       `ยอดเบิกไปแล้วของ ${equipment.name} น้อยกว่าจำนวนที่ต้องคืน`
     )
@@ -920,37 +920,44 @@ async function cancelRequisitionHistoryFixedRow(
   const stockSheetId = getSheetId(metadata.data, STOCK_SHEET_NAME)
   const historySheetId = getSheetId(metadata.data, HISTORY_SHEET_NAME)
 
+  const requests: any[] = []
+
+  if (equipment) {
+    requests.push(
+      stockUsageCellsUpdateRequest({
+        sheetId: stockSheetId,
+        rowIndex: equipmentIndex + 2,
+        used: nextUsed,
+        remaining: nextRemaining,
+      })
+    )
+  }
+
+  requests.push({
+    updateCells: {
+      range: {
+        sheetId: historySheetId,
+        startRowIndex: input.rowNumber - 1,
+        endRowIndex: input.rowNumber,
+        startColumnIndex: 9,
+        endColumnIndex: 10,
+      },
+      rows: [
+        {
+          values: [
+            { userEnteredValue: { stringValue: "ยกเลิก" } },
+          ],
+        },
+      ],
+      fields: "userEnteredValue",
+    },
+  })
+
   await withSheetsRetry(() =>
     sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
-        requests: [
-          stockUsageCellsUpdateRequest({
-            sheetId: stockSheetId,
-            rowIndex: equipmentIndex + 2,
-            used: nextUsed,
-            remaining: nextRemaining,
-          }),
-          {
-            updateCells: {
-              range: {
-                sheetId: historySheetId,
-                startRowIndex: input.rowNumber - 1,
-                endRowIndex: input.rowNumber,
-                startColumnIndex: 9,
-                endColumnIndex: 10,
-              },
-              rows: [
-                {
-                  values: [
-                    { userEnteredValue: { stringValue: "ยกเลิก" } },
-                  ],
-                },
-              ],
-              fields: "userEnteredValue",
-            },
-          },
-        ],
+        requests,
       },
     })
   )
@@ -987,19 +994,17 @@ async function cancelRequisitionHistoryGroupFixedRows(
   for (const row of targetRows) {
     const equipment = getHistoryEquipmentMatch(equipmentData, row)
 
-    if (!equipment) {
-      throw new Error(`ไม่พบอุปกรณ์เดิมในสต๊อก: ${row.equipmentName}`)
+    if (equipment) {
+      const wasMainUnit = Boolean(
+        equipment.mainUnit && row.unit.trim().toLowerCase() === equipment.mainUnit.trim().toLowerCase()
+      )
+      const returnedBaseUnits = toBaseUnit(row.amount, wasMainUnit, equipment.ratio)
+
+      returnedBaseUnitsByEquipmentId.set(
+        equipment.id,
+        (returnedBaseUnitsByEquipmentId.get(equipment.id) || 0) + returnedBaseUnits
+      )
     }
-
-    const wasMainUnit = Boolean(
-      equipment.mainUnit && row.unit.trim() === equipment.mainUnit.trim()
-    )
-    const returnedBaseUnits = toBaseUnit(row.amount, wasMainUnit, equipment.ratio)
-
-    returnedBaseUnitsByEquipmentId.set(
-      equipment.id,
-      (returnedBaseUnitsByEquipmentId.get(equipment.id) || 0) + returnedBaseUnits
-    )
   }
 
   const stockUpdates = Array.from(returnedBaseUnitsByEquipmentId.entries()).map(
@@ -1011,8 +1016,8 @@ async function cancelRequisitionHistoryGroupFixedRows(
         throw new Error(`ไม่พบอุปกรณ์รหัส ${equipmentId}`)
       }
 
-      const nextUsed = equipment.used - returnedBaseUnits
-      const nextRemaining = equipment.remaining + returnedBaseUnits
+      const nextUsed = Number((equipment.used - returnedBaseUnits).toFixed(4))
+      const nextRemaining = Number((equipment.remaining + returnedBaseUnits).toFixed(4))
 
       if (nextUsed < 0) {
         throw new Error(
