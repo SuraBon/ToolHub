@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -346,28 +347,40 @@ function StockOverviewContent() {
                   <div className="flex items-center gap-2 font-semibold text-blue-950">
                     <ShoppingCart className="h-5 w-5 text-blue-700" />
                     ที่เลือก
-                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">
+                    <motion.span
+                      key={selectedEquipment.length}
+                      initial={{ scale: 0.7 }}
+                      animate={{ scale: [1, 1.25, 1] }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white"
+                    >
                       {selectedEquipment.length}
-                    </span>
+                    </motion.span>
                   </div>
                   {selectedEquipment.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {selectedEquipment.map((item) => (
-                        <span
-                          key={item.id}
-                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-blue-100 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm"
-                        >
-                          <span className="max-w-[180px] truncate">{item.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeFromSelection(item.id)}
-                            className="rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
-                            aria-label={`ลบ ${item.name} ออกจากรายการที่เลือก`}
+                      <AnimatePresence>
+                        {selectedEquipment.map((item) => (
+                          <motion.span
+                            key={item.id}
+                            initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, x: 10 }}
+                            transition={{ duration: 0.2 }}
+                            className="inline-flex max-w-full items-center gap-2 rounded-full border border-blue-100 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm"
                           >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </span>
-                      ))}
+                            <span className="max-w-[180px] truncate">{item.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeFromSelection(item.id)}
+                              className="rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
+                              aria-label={`ลบ ${item.name} ออกจากรายการที่เลือก`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </motion.span>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   ) : (
                     <p className="mt-2 text-sm text-blue-800">
@@ -427,59 +440,66 @@ function StockOverviewContent() {
               ) : (
                 <div className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {paginatedEquipment.map((item) => {
-                      const selected = selectedEquipmentIdSet.has(item.id)
-                      const unavailable = item.remaining <= 0
+                    <AnimatePresence mode="popLayout">
+                      {paginatedEquipment.map((item) => {
+                        const selected = selectedEquipmentIdSet.has(item.id)
+                        const unavailable = item.remaining <= 0
 
-                      return (
-                        <div
-                          key={item.id}
-                          className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)]"
-                        >
-                          <EquipmentImage item={item} size={64} />
-                          <div className="flex min-w-0 flex-col justify-center gap-1">
-                            <p className="truncate text-xs font-semibold leading-5 text-slate-950 sm:text-[13px]">
-                              {item.name}
-                            </p>
-                            <p className="text-sm font-normal leading-5 text-slate-950 sm:text-base">
-                              {formatRemainingQuantity(item)}
-                            </p>
-                          </div>
-                          <div className="col-span-2 flex justify-end sm:col-span-1">
-                            {unavailable ? (
-                              <MobileActionButton
-                                type="button"
-                                disabled
-                                variant="outline"
-                                className="h-10 w-full rounded-xl px-3 text-xs sm:text-sm"
-                              >
-                                หมดสต๊อก
-                              </MobileActionButton>
-                            ) : selected ? (
-                              <MobileActionButton
-                                type="button"
-                                variant="outline"
-                                onClick={() => removeFromSelection(item.id)}
-                                className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 sm:text-sm"
-                              >
-                                <Check className="h-4 w-4" />
-                                เลือกไว้แล้ว
-                              </MobileActionButton>
-                            ) : (
-                              <MobileActionButton
-                                type="button"
-                                variant="outline"
-                                onClick={() => addToSelection(item)}
-                                className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800 sm:text-sm"
-                              >
-                                <ShoppingCart className="h-4 w-4" />
-                                เพิ่มรายการ
-                              </MobileActionButton>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
+                        return (
+                          <motion.div
+                            layout
+                            key={item.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:grid-cols-[64px_minmax(0,1fr)_minmax(112px,150px)]"
+                          >
+                            <EquipmentImage item={item} size={64} />
+                            <div className="flex min-w-0 flex-col justify-center gap-1">
+                              <p className="truncate text-xs font-semibold leading-5 text-slate-950 sm:text-[13px]">
+                                {item.name}
+                              </p>
+                              <p className="text-sm font-normal leading-5 text-slate-950 sm:text-base">
+                                {formatRemainingQuantity(item)}
+                              </p>
+                            </div>
+                            <div className="col-span-2 flex justify-end sm:col-span-1">
+                              {unavailable ? (
+                                <MobileActionButton
+                                  type="button"
+                                  disabled
+                                  variant="outline"
+                                  className="h-10 w-full rounded-xl px-3 text-xs sm:text-sm"
+                                >
+                                  หมดสต๊อก
+                                </MobileActionButton>
+                              ) : selected ? (
+                                <MobileActionButton
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => removeFromSelection(item.id)}
+                                  className="h-10 w-full gap-2 rounded-xl border-emerald-200 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 sm:text-sm"
+                                >
+                                  <Check className="h-4 w-4" />
+                                  เลือกไว้แล้ว
+                                </MobileActionButton>
+                              ) : (
+                                <MobileActionButton
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => addToSelection(item)}
+                                  className="h-10 w-full gap-2 rounded-xl border-blue-100 bg-blue-50 px-3 text-xs text-blue-700 hover:bg-blue-100 hover:text-blue-800 sm:text-sm"
+                                >
+                                  <ShoppingCart className="h-4 w-4" />
+                                  เพิ่มรายการ
+                                </MobileActionButton>
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </AnimatePresence>
                   </div>
                   <PaginationControls
                     page={currentStockPage}
