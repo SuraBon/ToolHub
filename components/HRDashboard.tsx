@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
@@ -669,9 +670,19 @@ export default function HRDashboard({ onBackToStock }: HRDashboardProps = {}) {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
         <header className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-xl shadow-slate-200/70 backdrop-blur sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">จัดการคลังอุปกรณ์</h1>
-              <p className="mt-2 text-sm text-slate-600">เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิกอุปกรณ์ และตรวจสถานะระบบ</p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="โลโก้จัดการคลังอุปกรณ์"
+                width={56}
+                height={56}
+                className="rounded-full object-cover shadow-sm"
+                priority
+              />
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">จัดการคลังอุปกรณ์</h1>
+                <p className="mt-2 text-sm text-slate-600">เพิ่ม แก้ไข ลบอุปกรณ์ ดูประวัติการเบิกอุปกรณ์ และตรวจสถานะระบบ</p>
+              </div>
             </div>
             <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
               <BackToStockButton onBack={onBackToStock} className="h-11 w-full gap-2 rounded-xl" />

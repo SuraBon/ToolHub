@@ -256,13 +256,23 @@ function StockOverviewContent() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5">
         <header className="rounded-xl border border-white/70 bg-white/75 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                คลังอุปกรณ์
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-slate-600">
-                ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
-              </p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="โลโก้คลังอุปกรณ์"
+                width={48}
+                height={48}
+                className="rounded-full object-cover shadow-sm"
+                priority
+              />
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  คลังอุปกรณ์
+                </h1>
+                <p className="mt-1 max-w-2xl text-sm text-slate-600">
+                  ตรวจสอบจำนวนคงเหลือและสถานะอุปกรณ์ทั้งหมดก่อนทำรายการเบิก
+                </p>
+              </div>
             </div>
             <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2 lg:flex">
               <Button

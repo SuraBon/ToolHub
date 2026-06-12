@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AlertTriangle, CheckCircle2, Package } from "lucide-react"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 
 import { BackToStockButton } from "@/components/BackToStockButton"
 import { MobileActionButton } from "@/components/MobileActionButton"
@@ -229,14 +230,23 @@ function FormPageContent() {
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <Package className="h-5 w-5 text-blue-600" />
-                  ฟอร์มเบิกอุปกรณ์
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
-                </CardDescription>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/logo.png"
+                  alt="โลโก้เบิกอุปกรณ์"
+                  width={36}
+                  height={36}
+                  className="rounded-full object-cover shadow-sm"
+                  priority
+                />
+                <div>
+                  <CardTitle className="text-lg sm:text-xl">
+                    ฟอร์มเบิกอุปกรณ์
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    กรอกข้อมูลผู้เบิกและเลือกรายการอุปกรณ์ที่ต้องการเบิก
+                  </CardDescription>
+                </div>
               </div>
               <BackToStockButton className="h-10 w-full gap-2 rounded-xl sm:w-auto" />
             </div>
