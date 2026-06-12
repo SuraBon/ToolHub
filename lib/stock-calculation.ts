@@ -67,6 +67,7 @@ export function calculateStockUpdates(
       item.amount,
       item.isMainUnit && equipment.mainUnit ? equipment.mainUnit : equipment.baseUnit,
       requestId,
+      "ปกติ",
     ])
   }
 

@@ -1,4 +1,5 @@
 import { google } from "googleapis"
+import { unstable_cache, revalidateTag } from "next/cache"
 
 import {
   HISTORY_HEADERS,
@@ -55,8 +56,6 @@ type SheetMetadata = {
 
 let equipmentCache: CacheEntry<Equipment[]> | null = null
 let historyCache: CacheEntry<HistoryRow[]> | null = null
-let equipmentReadPromise: Promise<Equipment[]> | null = null
-let historyReadPromise: Promise<HistoryRow[]> | null = null
 let sheetsWriteQueue: Promise<unknown> = Promise.resolve()
 let workbookSetupCompleted = false
 
@@ -68,14 +67,6 @@ type EquipmentInput = Omit<
   used?: number | string
   remaining?: number | string
   ratio?: number | string
-}
-
-function getCachedData<T>(cache: CacheEntry<T> | null) {
-  if (!cache || cache.expiresAt <= Date.now()) {
-    return null
-  }
-
-  return cache.data
 }
 
 function setCachedData<T>(data: T): CacheEntry<T> {
@@ -96,6 +87,12 @@ function clearHistoryCache() {
 function clearSheetsCache() {
   clearEquipmentCache()
   clearHistoryCache()
+  try {
+    revalidateTag("equipment", "max")
+    revalidateTag("history", "max")
+  } catch (e) {
+    // Ignore if not in Next.js context
+  }
 }
 
 function queueSheetsWrite<T>(operation: () => Promise<T>) {
@@ -248,6 +245,7 @@ function mapHistoryRow(row: string[], index: number) {
     amount: hasEquipmentIdColumn ? toNumber(row[6]) : toNumber(row[5]),
     unit: hasEquipmentIdColumn ? row[7] || "" : row[6] || "",
     requestId: hasEquipmentIdColumn ? row[8] || "" : row[7] || "",
+    status: row[9] || "ปกติ",
   }
 }
 
@@ -381,31 +379,23 @@ async function readAllEquipmentData(forceRefresh: boolean) {
   }
 }
 
+const getCachedEquipment = unstable_cache(
+  async () => readAllEquipmentData(true),
+  ["equipment-data"],
+  { revalidate: 15, tags: ["equipment"] }
+)
+
 export async function getAllEquipmentData({ forceRefresh = false }: ReadOptions = {}) {
-  if (!forceRefresh) {
-    const cachedEquipment = getCachedData(equipmentCache)
-
-    if (cachedEquipment) {
-      return cachedEquipment
-    }
-
-    if (equipmentReadPromise) {
-      return equipmentReadPromise
-    }
-
-    const readPromise = readAllEquipmentData(false)
-    equipmentReadPromise = readPromise
-
+  if (forceRefresh) {
+    const data = await readAllEquipmentData(true)
     try {
-      return await readPromise
-    } finally {
-      if (equipmentReadPromise === readPromise) {
-        equipmentReadPromise = null
-      }
+      revalidateTag("equipment", "max")
+    } catch (e) {
+      // Ignore in non-Next environment
     }
+    return data
   }
-
-  return readAllEquipmentData(true)
+  return getCachedEquipment()
 }
 
 async function readRequisitionHistoryData(forceRefresh: boolean) {
@@ -422,7 +412,9 @@ async function readRequisitionHistoryData(forceRefresh: boolean) {
     )
 
     const rows = response.data.values || []
-    const history = rows.map((row, index) => mapHistoryRow(row as string[], index))
+    const history = rows
+      .map((row, index) => mapHistoryRow(row as string[], index))
+      .filter((row) => row.status !== "ยกเลิก")
     historyCache = setCachedData(history)
 
     return history
@@ -435,33 +427,25 @@ async function readRequisitionHistoryData(forceRefresh: boolean) {
   }
 }
 
+const getCachedHistory = unstable_cache(
+  async () => readRequisitionHistoryData(true),
+  ["history-data"],
+  { revalidate: 15, tags: ["history"] }
+)
+
 export async function getRequisitionHistoryData({
   forceRefresh = false,
 }: ReadOptions = {}) {
-  if (!forceRefresh) {
-    const cachedHistory = getCachedData(historyCache)
-
-    if (cachedHistory) {
-      return cachedHistory
-    }
-
-    if (historyReadPromise) {
-      return historyReadPromise
-    }
-
-    const readPromise = readRequisitionHistoryData(false)
-    historyReadPromise = readPromise
-
+  if (forceRefresh) {
+    const data = await readRequisitionHistoryData(true)
     try {
-      return await readPromise
-    } finally {
-      if (historyReadPromise === readPromise) {
-        historyReadPromise = null
-      }
+      revalidateTag("history", "max")
+    } catch (e) {
+      // Ignore in non-Next environment
     }
+    return data
   }
-
-  return readRequisitionHistoryData(true)
+  return getCachedHistory()
 }
 
 export async function getAvailableEquipmentData() {
@@ -948,13 +932,22 @@ async function cancelRequisitionHistoryFixedRow(
             remaining: nextRemaining,
           }),
           {
-            deleteDimension: {
+            updateCells: {
               range: {
                 sheetId: historySheetId,
-                dimension: "ROWS",
-                startIndex: input.rowNumber - 1,
-                endIndex: input.rowNumber,
+                startRowIndex: input.rowNumber - 1,
+                endRowIndex: input.rowNumber,
+                startColumnIndex: 9,
+                endColumnIndex: 10,
               },
+              rows: [
+                {
+                  values: [
+                    { userEnteredValue: { stringValue: "ยกเลิก" } },
+                  ],
+                },
+              ],
+              fields: "userEnteredValue",
             },
           },
         ],
@@ -1065,13 +1058,22 @@ async function cancelRequisitionHistoryGroupFixedRows(
             })
           }),
           ...targetRows.map((row) => ({
-            deleteDimension: {
+            updateCells: {
               range: {
                 sheetId: historySheetId,
-                dimension: "ROWS",
-                startIndex: row.rowNumber - 1,
-                endIndex: row.rowNumber,
+                startRowIndex: row.rowNumber - 1,
+                endRowIndex: row.rowNumber,
+                startColumnIndex: 9,
+                endColumnIndex: 10,
               },
+              rows: [
+                {
+                  values: [
+                    { userEnteredValue: { stringValue: "ยกเลิก" } },
+                  ],
+                },
+              ],
+              fields: "userEnteredValue",
             },
           })),
         ],

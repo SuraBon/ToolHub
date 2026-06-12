@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto"
 import { jsonError, jsonSuccess } from "@/lib/api-response"
 import { logAdminEvent } from "@/lib/audit-log"
 import { requireEnv } from "@/lib/env"
@@ -14,10 +15,10 @@ const LOGIN_LIMIT = 5
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 
 function getClientKey(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
   const realIp = request.headers.get("x-real-ip")?.trim()
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
 
-  return `hr-login:${forwardedFor || realIp || "unknown"}`
+  return `hr-login:${realIp || forwardedFor || "unknown"}`
 }
 
 export async function GET() {
@@ -52,7 +53,11 @@ export async function POST(request: Request) {
 
     const correctPassword = requireEnv("HR_PASSWORD")
 
-    if (password === correctPassword) {
+    const hashInput = createHmac("sha256", "timing-safe-salt").update(password || "").digest()
+    const hashCorrect = createHmac("sha256", "timing-safe-salt").update(correctPassword || "").digest()
+    const passwordMatch = timingSafeEqual(hashInput, hashCorrect)
+
+    if (passwordMatch) {
       clearRateLimit(clientKey)
       await logAdminEvent({
         action: "hr_login_success",

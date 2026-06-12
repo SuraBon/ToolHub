@@ -13,7 +13,14 @@ type HrSessionPayload = {
 }
 
 function getSessionSecret() {
-  return process.env.HR_SESSION_SECRET || process.env.HR_PASSWORD || ""
+  const secret = process.env.HR_SESSION_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ความปลอดภัย: จำเป็นต้องตั้งค่า HR_SESSION_SECRET ใน Production")
+    }
+    return process.env.HR_PASSWORD || "dev-fallback-secret"
+  }
+  return secret
 }
 
 export function isHrPasswordConfigured() {

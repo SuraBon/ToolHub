@@ -79,6 +79,7 @@ describe("calculateStockUpdates", () => {
       1,
       equipment[0].baseUnit,
       "request-1",
+      "ปกติ",
     ])
   })
 

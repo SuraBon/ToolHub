@@ -24,6 +24,7 @@ export const HISTORY_HEADERS = [
   "จำนวนที่เบิก",
   "หน่วยที่เบิก",
   "Request ID",
+  "สถานะ",
 ]
 
 export const AUDIT_LOG_HEADERS = [
@@ -55,16 +56,16 @@ export function stockUsageRange(rowIndex: number) {
 }
 
 export function historyReadRange() {
-  return `${HISTORY_SHEET_NAME}!A2:I`
+  return `${HISTORY_SHEET_NAME}!A2:J`
 }
 
 export function historyRowRange(rowIndex: number) {
-  return `${HISTORY_SHEET_NAME}!A${rowIndex}:I${rowIndex}`
+  return `${HISTORY_SHEET_NAME}!A${rowIndex}:J${rowIndex}`
 }
 
 export function historyRowsRange(startRowIndex: number, rowCount: number) {
   const endRowIndex = startRowIndex + rowCount - 1
-  return `${HISTORY_SHEET_NAME}!A${startRowIndex}:I${endRowIndex}`
+  return `${HISTORY_SHEET_NAME}!A${startRowIndex}:J${endRowIndex}`
 }
 
 export function auditLogAppendRange() {
