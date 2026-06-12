@@ -1,0 +1,24 @@
+{
+  "name": "คลังอุปกรณ์ Requisition System",
+  "short_name": "คลังอุปกรณ์",
+  "description": "ระบบตรวจสอบคลังอุปกรณ์และบันทึกคำขอเบิกอุปกรณ์",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon?sz=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon?sz=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

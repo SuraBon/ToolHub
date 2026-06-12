@@ -517,6 +517,7 @@ export function EquipmentCrudDialog({
                 value={stockMainUnitStr || "0"}
                 onValueChange={(val) => setValue("stockMainUnit", val)}
                 disabled={!hasMainStockUnit}
+                className="max-w-full w-full"
               />
             </div>
             <div className="space-y-2">
@@ -529,6 +530,7 @@ export function EquipmentCrudDialog({
                 min={0}
                 value={stockBaseUnitStr || "0"}
                 onValueChange={(val) => setValue("stockBaseUnit", val)}
+                className="max-w-full w-full"
               />
               {errors.stockBaseUnit && (
                 <p className="text-xs font-semibold text-red-600">
@@ -554,6 +556,7 @@ export function EquipmentCrudDialog({
                   min={0}
                   value={usedStr || "0"}
                   onValueChange={(val) => setValue("used", val)}
+                  className="max-w-full w-full"
                 />
               </div>
             )}
